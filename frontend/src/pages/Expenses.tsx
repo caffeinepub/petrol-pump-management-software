@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAppStore, Expense } from '@/store/appStore';
+import { useAppStore, ExpenseCategory, PaymentMethod } from '@/store/appStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,8 +31,8 @@ import { toast } from 'sonner';
 const formatINR = (amount: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 
-const CATEGORIES = ['Maintenance', 'Utilities', 'Salaries', 'Supplies', 'Marketing', 'Other'];
-const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'UPI', 'Card'];
+const CATEGORIES: ExpenseCategory[] = ['Maintenance', 'Utilities', 'Salaries', 'Equipment', 'Fuel Purchase', 'Other'];
+const PAYMENT_METHODS: PaymentMethod[] = ['Cash', 'UPI', 'Card', 'Credit'];
 
 export default function Expenses() {
   const { expenses, addExpense } = useAppStore();
@@ -40,15 +40,13 @@ export default function Expenses() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Form state — all blank by default
   const [date, setDate] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState<ExpenseCategory | ''>('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
   const [approvedBy, setApprovedBy] = useState('');
 
-  // Reset all form fields to blank whenever the modal opens
   useEffect(() => {
     if (modalOpen) {
       setDate('');
@@ -81,16 +79,15 @@ export default function Expenses() {
       toast.error('Please fill in all required fields with valid values.');
       return;
     }
-    const newExpense: Omit<Expense, 'id'> = {
+    addExpense({
       date,
-      category,
+      category: category as ExpenseCategory,
       description,
       amount: amountNum,
-      paymentMethod: paymentMethod || 'Cash',
+      paymentMethod: (paymentMethod || 'Cash') as PaymentMethod,
       approvedBy: approvedBy || 'Manager',
       recordedBy: approvedBy || 'Manager',
-    };
-    addExpense(newExpense);
+    });
     toast.success('Expense recorded successfully!');
     setModalOpen(false);
   };
@@ -173,7 +170,7 @@ export default function Expenses() {
                 <TableHead className="whitespace-nowrap">Description</TableHead>
                 <TableHead className="whitespace-nowrap">Amount</TableHead>
                 <TableHead className="whitespace-nowrap hidden sm:table-cell">Payment</TableHead>
-                <TableHead className="whitespace-nowrap hidden md:table-cell">Recorded By</TableHead>
+                <TableHead className="whitespace-nowrap hidden md:table-cell">Approved By</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -195,7 +192,7 @@ export default function Expenses() {
                     <TableCell className="text-sm">{exp.description}</TableCell>
                     <TableCell className="text-sm font-medium">{formatINR(exp.amount)}</TableCell>
                     <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{exp.paymentMethod}</TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{exp.recordedBy}</TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{exp.approvedBy}</TableCell>
                   </TableRow>
                 ))
               )}
@@ -217,7 +214,7 @@ export default function Expenses() {
             </div>
             <div className="space-y-1">
               <Label>Category *</Label>
-              <Select value={category} onValueChange={setCategory}>
+              <Select value={category} onValueChange={(v) => setCategory(v as ExpenseCategory)}>
                 <SelectTrigger className="min-h-[44px]">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -251,7 +248,7 @@ export default function Expenses() {
             </div>
             <div className="space-y-1">
               <Label>Payment Method</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
                 <SelectTrigger className="min-h-[44px]">
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>

@@ -30,7 +30,7 @@ export default function Inventory() {
 
   const [stockModalOpen, setStockModalOpen] = useState(false);
   const [priceModalOpen, setPriceModalOpen] = useState(false);
-  const [selectedFuel, setSelectedFuel] = useState('');
+  const [selectedFuelId, setSelectedFuelId] = useState('');
   const [stockAmount, setStockAmount] = useState('');
   const [newPrice, setNewPrice] = useState('');
 
@@ -38,24 +38,26 @@ export default function Inventory() {
 
   const handleAddStock = () => {
     const qty = parseFloat(stockAmount);
-    if (!selectedFuel || isNaN(qty) || qty <= 0) {
+    if (!selectedFuelId || isNaN(qty) || qty <= 0) {
       toast.error('Please enter a valid quantity.');
       return;
     }
-    updateFuelStock(selectedFuel, qty);
-    toast.success(`Added ${qty}L to ${selectedFuel} stock.`);
+    updateFuelStock(selectedFuelId, qty);
+    const item = fuelInventory.find(f => f.id === selectedFuelId);
+    toast.success(`Added ${qty}L to ${item?.fuelType ?? ''} stock.`);
     setStockModalOpen(false);
     setStockAmount('');
   };
 
   const handleUpdatePrice = () => {
     const price = parseFloat(newPrice);
-    if (!selectedFuel || isNaN(price) || price <= 0) {
+    if (!selectedFuelId || isNaN(price) || price <= 0) {
       toast.error('Please enter a valid price.');
       return;
     }
-    updateFuelPrice(selectedFuel, price);
-    toast.success(`Price updated for ${selectedFuel}.`);
+    updateFuelPrice(selectedFuelId, price);
+    const item = fuelInventory.find(f => f.id === selectedFuelId);
+    toast.success(`Price updated for ${item?.fuelType ?? ''}.`);
     setPriceModalOpen(false);
     setNewPrice('');
   };
@@ -72,13 +74,19 @@ export default function Inventory() {
           <Button
             variant="outline"
             className="min-h-[44px]"
-            onClick={() => { setSelectedFuel(fuelInventory[0]?.fuelType ?? ''); setPriceModalOpen(true); }}
+            onClick={() => {
+              setSelectedFuelId(fuelInventory[0]?.id ?? '');
+              setPriceModalOpen(true);
+            }}
           >
             Update Price
           </Button>
           <Button
             className="min-h-[44px]"
-            onClick={() => { setSelectedFuel(fuelInventory[0]?.fuelType ?? ''); setStockModalOpen(true); }}
+            onClick={() => {
+              setSelectedFuelId(fuelInventory[0]?.id ?? '');
+              setStockModalOpen(true);
+            }}
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Stock
@@ -95,7 +103,7 @@ export default function Inventory() {
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
             {lowStockItems.map((item) => (
-              <span key={item.fuelType} className="text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded-full">
+              <span key={item.id} className="text-xs bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded-full">
                 {item.fuelType}: {item.currentStock.toLocaleString('en-IN')}L
               </span>
             ))}
@@ -109,7 +117,7 @@ export default function Inventory() {
           const pct = Math.round((item.currentStock / item.capacity) * 100);
           const isLow = item.currentStock <= item.reorderLevel;
           return (
-            <div key={item.fuelType} className="bg-card border rounded-lg p-4 space-y-3">
+            <div key={item.id} className="bg-card border rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Fuel className={`h-4 w-4 ${isLow ? 'text-destructive' : 'text-primary'}`} />
@@ -129,7 +137,7 @@ export default function Inventory() {
               </div>
               <div className="pt-1 border-t">
                 <p className="text-xs text-muted-foreground">Price per Litre</p>
-                <p className="text-sm font-semibold text-foreground">₹{item.pricePerLiter.toFixed(2)}</p>
+                <p className="text-sm font-semibold text-foreground">₹{item.pricePerLitre.toFixed(2)}</p>
               </div>
             </div>
           );
@@ -158,11 +166,11 @@ export default function Inventory() {
               {fuelInventory.map((item) => {
                 const isLow = item.currentStock <= item.reorderLevel;
                 return (
-                  <TableRow key={item.fuelType}>
+                  <TableRow key={item.id}>
                     <TableCell className="font-medium">{item.fuelType}</TableCell>
                     <TableCell>{item.currentStock.toLocaleString('en-IN')} L</TableCell>
                     <TableCell className="hidden sm:table-cell">{item.capacity.toLocaleString('en-IN')} L</TableCell>
-                    <TableCell>₹{item.pricePerLiter.toFixed(2)}</TableCell>
+                    <TableCell>₹{item.pricePerLitre.toFixed(2)}</TableCell>
                     <TableCell className="hidden md:table-cell">{item.reorderLevel.toLocaleString('en-IN')} L</TableCell>
                     <TableCell className="hidden lg:table-cell">{item.lastUpdated}</TableCell>
                     <TableCell>
@@ -193,11 +201,11 @@ export default function Inventory() {
               <Label>Fuel Type</Label>
               <select
                 className="w-full border rounded-md px-3 py-2 text-sm bg-background min-h-[44px]"
-                value={selectedFuel}
-                onChange={(e) => setSelectedFuel(e.target.value)}
+                value={selectedFuelId}
+                onChange={(e) => setSelectedFuelId(e.target.value)}
               >
                 {fuelInventory.map((f) => (
-                  <option key={f.fuelType} value={f.fuelType}>{f.fuelType}</option>
+                  <option key={f.id} value={f.id}>{f.fuelType}</option>
                 ))}
               </select>
             </div>
@@ -231,11 +239,11 @@ export default function Inventory() {
               <Label>Fuel Type</Label>
               <select
                 className="w-full border rounded-md px-3 py-2 text-sm bg-background min-h-[44px]"
-                value={selectedFuel}
-                onChange={(e) => setSelectedFuel(e.target.value)}
+                value={selectedFuelId}
+                onChange={(e) => setSelectedFuelId(e.target.value)}
               >
                 {fuelInventory.map((f) => (
-                  <option key={f.fuelType} value={f.fuelType}>{f.fuelType}</option>
+                  <option key={f.id} value={f.id}>{f.fuelType}</option>
                 ))}
               </select>
             </div>

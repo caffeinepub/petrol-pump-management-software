@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/sonner';
 import AppLayout from './components/layout/AppLayout';
 import Dashboard from './pages/Dashboard';
 import FuelSales from './pages/FuelSales';
+import FuelSalesLog from './pages/FuelSalesLog';
 import Inventory from './pages/Inventory';
 import StaffManagement from './pages/StaffManagement';
 import Customers from './pages/Customers';
@@ -48,6 +49,12 @@ const salesRoute = createRoute({
   getParentRoute: () => layoutRoute,
   path: '/sales',
   component: FuelSales,
+});
+
+const fuelSalesLogRoute = createRoute({
+  getParentRoute: () => layoutRoute,
+  path: '/fuel-sales-log',
+  component: FuelSalesLog,
 });
 
 const inventoryRoute = createRoute({
@@ -110,6 +117,7 @@ const routeTree = rootRoute.addChildren([
   layoutRoute.addChildren([
     dashboardRoute,
     salesRoute,
+    fuelSalesLogRoute,
     inventoryRoute,
     staffRoute,
     customersRoute,

@@ -1,22 +1,21 @@
-import { useState, useEffect } from 'react';
-import { useAppStore } from '../../store/appStore';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import type { ShiftStatus } from '../../store/appStore';
+import { useAppStore, ShiftStatus } from '../../store/appStore';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
+const SHIFT_STATUSES: ShiftStatus[] = ['Scheduled', 'Completed', 'Absent'];
+
 export default function ShiftFormModal({ open, onClose }: Props) {
+  const staff = useAppStore(s => s.staff).filter(s => s.isActive);
   const addShift = useAppStore(s => s.addShift);
-  const staff = useAppStore(s => s.staff).filter(s => s.status === 'Active');
 
   const [staffId, setStaffId] = useState('');
   const [date, setDate] = useState('');
@@ -24,9 +23,8 @@ export default function ShiftFormModal({ open, onClose }: Props) {
   const [endTime, setEndTime] = useState('');
   const [pumpNumber, setPumpNumber] = useState('');
   const [status, setStatus] = useState<ShiftStatus>('Scheduled');
-  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Reset all fields to blank when modal opens for a new shift
   useEffect(() => {
     if (open) {
       setStaffId('');
@@ -35,99 +33,105 @@ export default function ShiftFormModal({ open, onClose }: Props) {
       setEndTime('');
       setPumpNumber('');
       setStatus('Scheduled');
-      setSaving(false);
+      setErrors({});
     }
   }, [open]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!staffId) { toast.error('Select a staff member'); return; }
-    if (!date) { toast.error('Select a date'); return; }
-    if (!startTime) { toast.error('Enter a start time'); return; }
-    if (!endTime) { toast.error('Enter an end time'); return; }
-    if (startTime >= endTime) { toast.error('End time must be after start time'); return; }
-    if (!pumpNumber) { toast.error('Select a pump number'); return; }
+  const validate = () => {
+    const errs: Record<string, string> = {};
+    if (!staffId) errs.staffId = 'Select a staff member';
+    if (!date) errs.date = 'Enter a date';
+    if (!startTime) errs.startTime = 'Enter start time';
+    if (!endTime) errs.endTime = 'Enter end time';
+    if (!pumpNumber) errs.pumpNumber = 'Enter pump number';
+    return errs;
+  };
 
-    const selectedStaff = staff.find(s => s.id === staffId);
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 300));
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    const member = staff.find(s => s.id === staffId);
     addShift({
+      id: `shift-${Date.now()}`,
       staffId,
-      staffName: selectedStaff?.name || 'Unknown',
+      staffName: member?.name ?? '',
       date,
       startTime,
       endTime,
-      pumpNumber: parseInt(pumpNumber),
+      pumpNumber: parseInt(pumpNumber, 10),
       status,
     });
-    toast.success('Shift created successfully');
-    setSaving(false);
     onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Create Shift</DialogTitle>
+          <DialogTitle>Schedule Shift</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Staff Member *</Label>
-            <Select value={staffId} onValueChange={setStaffId}>
-              <SelectTrigger className="min-h-[44px]">
+          <div className="space-y-1">
+            <Label>Staff Member *</Label>
+            <Select value={staffId} onValueChange={v => { setStaffId(v); setErrors(p => ({ ...p, staffId: '' })); }}>
+              <SelectTrigger>
                 <SelectValue placeholder="Select staff member" />
               </SelectTrigger>
               <SelectContent>
-                {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name} — {s.role}</SelectItem>)}
+                {staff.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.name} — {s.role}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.staffId && <p className="text-destructive text-xs">{errors.staffId}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="date">Date *</Label>
+            <Input id="date" type="date" value={date} onChange={e => { setDate(e.target.value); setErrors(p => ({ ...p, date: '' })); }} />
+            {errors.date && <p className="text-destructive text-xs">{errors.date}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="startTime">Start Time *</Label>
+              <Input id="startTime" type="time" value={startTime} onChange={e => { setStartTime(e.target.value); setErrors(p => ({ ...p, startTime: '' })); }} />
+              {errors.startTime && <p className="text-destructive text-xs">{errors.startTime}</p>}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="endTime">End Time *</Label>
+              <Input id="endTime" type="time" value={endTime} onChange={e => { setEndTime(e.target.value); setErrors(p => ({ ...p, endTime: '' })); }} />
+              {errors.endTime && <p className="text-destructive text-xs">{errors.endTime}</p>}
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="pump">Pump Number *</Label>
+            <Input id="pump" type="number" min={1} value={pumpNumber} onChange={e => { setPumpNumber(e.target.value); setErrors(p => ({ ...p, pumpNumber: '' })); }} placeholder="e.g. 1" />
+            {errors.pumpNumber && <p className="text-destructive text-xs">{errors.pumpNumber}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={v => setStatus(v as ShiftStatus)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SHIFT_STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Date *</Label>
-            <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="min-h-[44px]" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Start Time *</Label>
-              <Input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="min-h-[44px]" />
-            </div>
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">End Time *</Label>
-              <Input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="min-h-[44px]" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Pump Number *</Label>
-              <Select value={pumpNumber} onValueChange={setPumpNumber}>
-                <SelectTrigger className="min-h-[44px]">
-                  <SelectValue placeholder="Select pump" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4].map(n => <SelectItem key={n} value={String(n)}>Pump {n}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Status</Label>
-              <Select value={status} onValueChange={v => setStatus(v as ShiftStatus)}>
-                <SelectTrigger className="min-h-[44px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Scheduled">Scheduled</SelectItem>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="min-h-[44px] w-full sm:w-auto">Cancel</Button>
-            <Button type="submit" disabled={saving} className="min-h-[44px] w-full sm:w-auto">
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : 'Create Shift'}
-            </Button>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit">Schedule Shift</Button>
           </DialogFooter>
         </form>
       </DialogContent>

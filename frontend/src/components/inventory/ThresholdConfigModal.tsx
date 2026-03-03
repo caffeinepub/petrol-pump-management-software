@@ -1,12 +1,9 @@
-import { useState } from 'react';
-import { useAppStore } from '../../store/appStore';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import type { FuelType } from '../../store/appStore';
+import { useAppStore, FuelType } from '../../store/appStore';
 
 interface Props {
   open: boolean;
@@ -17,69 +14,54 @@ export default function ThresholdConfigModal({ open, onClose }: Props) {
   const stockLevels = useAppStore(s => s.stockLevels);
   const updateThreshold = useAppStore(s => s.updateThreshold);
 
-  const [thresholds, setThresholds] = useState<Record<FuelType, string>>({
-    Petrol: String(stockLevels.find(s => s.fuelType === 'Petrol')?.threshold ?? 3000),
-    Diesel: String(stockLevels.find(s => s.fuelType === 'Diesel')?.threshold ?? 4000),
-    Premium: String(stockLevels.find(s => s.fuelType === 'Premium')?.threshold ?? 1500),
-  });
-  const [saving, setSaving] = useState(false);
+  const [thresholds, setThresholds] = useState<Record<string, string>>({});
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 300));
-    (['Petrol', 'Diesel', 'Premium'] as FuelType[]).forEach(ft => {
-      const val = parseFloat(thresholds[ft]);
-      if (!isNaN(val) && val >= 0) {
-        updateThreshold(ft, val);
+  useEffect(() => {
+    if (open) {
+      const initial: Record<string, string> = {};
+      stockLevels.forEach(sl => {
+        initial[sl.fuelType] = String(sl.threshold);
+      });
+      setThresholds(initial);
+    }
+  }, [open, stockLevels]);
+
+  const handleSave = () => {
+    Object.entries(thresholds).forEach(([fuelType, val]) => {
+      const num = parseInt(val, 10);
+      if (!isNaN(num) && num >= 0) {
+        updateThreshold(fuelType as FuelType, num);
       }
     });
-    toast.success('Thresholds updated successfully');
-    setSaving(false);
     onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Configure Low-Stock Thresholds</DialogTitle>
+          <DialogTitle>Configure Low-Stock Thresholds</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-muted-foreground text-sm">
-            Set the minimum stock level (in liters) that triggers a low-stock alert for each fuel type.
-          </p>
-
-          {(['Petrol', 'Diesel', 'Premium'] as FuelType[]).map(ft => {
-            const stock = stockLevels.find(s => s.fuelType === ft);
-            return (
-              <div key={ft}>
-                <Label className="text-muted-foreground text-xs mb-1.5 block">
-                  {ft} Threshold (L)
-                  {stock && (
-                    <span className="ml-2 text-muted-foreground">
-                      — Capacity: {stock.capacity.toLocaleString()}L
-                    </span>
-                  )}
-                </Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={thresholds[ft]}
-                  onChange={e => setThresholds(prev => ({ ...prev, [ft]: e.target.value }))}
-                  className="min-h-[44px]"
-                />
-              </div>
-            );
-          })}
-
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="min-h-[44px] w-full sm:w-auto">Cancel</Button>
-            <Button type="submit" disabled={saving} className="min-h-[44px] w-full sm:w-auto">
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</> : 'Save Thresholds'}
-            </Button>
-          </DialogFooter>
-        </form>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">Set the minimum stock level (litres) before a low-stock alert is triggered.</p>
+          {stockLevels.map(sl => (
+            <div key={sl.fuelType} className="flex items-center gap-3">
+              <Label className="w-20 shrink-0">{sl.fuelType}</Label>
+              <Input
+                type="number"
+                min={0}
+                value={thresholds[sl.fuelType] ?? ''}
+                onChange={e => setThresholds(prev => ({ ...prev, [sl.fuelType]: e.target.value }))}
+                placeholder="Threshold litres"
+              />
+              <span className="text-xs text-muted-foreground">Current: {sl.current.toLocaleString('en-IN')}L</span>
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave}>Save Thresholds</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

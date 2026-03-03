@@ -1,83 +1,67 @@
-import { useState } from 'react';
-import { useAppStore, Customer } from '../../store/appStore';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Star } from 'lucide-react';
-import { toast } from 'sonner';
+import { useAppStore, Customer } from '../../store/appStore';
 
 interface Props {
+  customer: Customer | null;
   open: boolean;
   onClose: () => void;
-  customer: Customer;
 }
 
-export default function RedeemPointsModal({ open, onClose, customer }: Props) {
+export default function RedeemPointsModal({ customer, open, onClose }: Props) {
   const redeemPoints = useAppStore(s => s.redeemPoints);
   const [points, setPoints] = useState('');
-  const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const pts = parseInt(points);
-    if (!pts || pts <= 0) { toast.error('Enter a valid number of points'); return; }
-    if (pts > customer.loyaltyPoints) { toast.error(`Cannot redeem more than ${customer.loyaltyPoints} points`); return; }
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 300));
+  if (!customer) return null;
+
+  const handleRedeem = () => {
+    const pts = parseInt(points, 10);
+    if (isNaN(pts) || pts <= 0) {
+      setError('Enter a valid number of points.');
+      return;
+    }
+    if (pts > customer.loyaltyPoints) {
+      setError(`Cannot redeem more than ${customer.loyaltyPoints} points.`);
+      return;
+    }
     redeemPoints(customer.id, pts);
-    toast.success(`${pts} points redeemed for ${customer.name}`);
-    setSaving(false);
-    setPoints(''); setNote('');
+    setPoints('');
+    setError('');
     onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-xl">Redeem Loyalty Points</DialogTitle>
+          <DialogTitle>Redeem Loyalty Points</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-primary/10 rounded-xl p-4 border border-primary/30 flex items-center gap-3">
-            <Star className="w-5 h-5 text-primary" />
-            <div>
-              <p className="text-xs text-muted-foreground">Available Balance</p>
-              <p className="text-2xl font-bold text-primary">{customer.loyaltyPoints.toLocaleString()} pts</p>
-            </div>
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Points to Redeem</Label>
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {customer.name} has <span className="font-bold text-foreground">{customer.loyaltyPoints}</span> points available.
+          </p>
+          <div className="space-y-1">
+            <Label htmlFor="points">Points to Redeem</Label>
             <Input
+              id="points"
               type="number"
-              min="1"
+              min={1}
               max={customer.loyaltyPoints}
               value={points}
-              onChange={e => setPoints(e.target.value)}
-              required
-              placeholder={`Max: ${customer.loyaltyPoints}`}
-              className="min-h-[44px]"
+              onChange={e => { setPoints(e.target.value); setError(''); }}
+              placeholder="Enter points"
             />
+            {error && <p className="text-destructive text-xs">{error}</p>}
           </div>
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Redemption Note</Label>
-            <Textarea
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="Reason for redemption..."
-              rows={2}
-              className="resize-none"
-            />
-          </div>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="min-h-[44px] w-full sm:w-auto">Cancel</Button>
-            <Button type="submit" disabled={saving} className="min-h-[44px] w-full sm:w-auto">
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Redeeming...</> : 'Redeem Points'}
-            </Button>
-          </DialogFooter>
-        </form>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleRedeem}>Redeem</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

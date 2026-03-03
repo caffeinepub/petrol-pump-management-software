@@ -1,206 +1,155 @@
-import { useState, useEffect } from 'react';
-import { useAppStore, Staff, StaffStatus, SalaryPeriod } from '../../store/appStore';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useAppStore, StaffMember, StaffRole, PayPeriod } from '../../store/appStore';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  editingStaff: Staff | null;
+  editingStaff?: StaffMember | null;
 }
+
+const ROLES: StaffRole[] = ['Manager', 'Attendant', 'Cashier', 'Technician', 'Security'];
+const PAY_PERIODS: PayPeriod[] = ['monthly', 'annual'];
 
 export default function StaffFormModal({ open, onClose, editingStaff }: Props) {
   const addStaff = useAppStore(s => s.addStaff);
   const updateStaff = useAppStore(s => s.updateStaff);
 
   const [name, setName] = useState('');
-  const [role, setRole] = useState('');
-  const [contact, setContact] = useState('');
+  const [role, setRole] = useState<StaffRole | ''>('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [hireDate, setHireDate] = useState('');
-  const [status, setStatus] = useState<StaffStatus>('Active');
   const [salary, setSalary] = useState('');
-  const [salaryPeriod, setSalaryPeriod] = useState<SalaryPeriod>('monthly');
-  const [saving, setSaving] = useState(false);
+  const [payPeriod, setPayPeriod] = useState<PayPeriod>('monthly');
 
   useEffect(() => {
     if (open) {
       if (editingStaff) {
         setName(editingStaff.name);
         setRole(editingStaff.role);
-        setContact(editingStaff.contact);
-        setHireDate(editingStaff.hireDate || editingStaff.joinDate || '');
-        setStatus(editingStaff.status);
-        setSalary(editingStaff.salary > 0 ? String(editingStaff.salary) : '');
-        setSalaryPeriod(editingStaff.salaryPeriod ?? 'monthly');
+        setPhone(editingStaff.phone ?? editingStaff.contact ?? '');
+        setEmail(editingStaff.email);
+        setHireDate(editingStaff.hireDate);
+        setSalary(String(editingStaff.salary));
+        setPayPeriod(editingStaff.payPeriod ?? editingStaff.salaryPeriod ?? 'monthly');
       } else {
         setName('');
         setRole('');
-        setContact('');
+        setPhone('');
+        setEmail('');
         setHireDate('');
-        setStatus('Active');
         setSalary('');
-        setSalaryPeriod('monthly');
+        setPayPeriod('monthly');
       }
-      setSaving(false);
     }
-  }, [editingStaff, open]);
+  }, [open, editingStaff]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !role.trim()) {
-      toast.error('Name and role are required');
-      return;
-    }
-    const salaryNum = parseFloat(salary);
-    if (!salary || isNaN(salaryNum) || salaryNum <= 0) {
-      toast.error('Please enter a valid salary amount');
-      return;
-    }
-
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 300));
+    if (!name.trim() || !role) return;
 
     if (editingStaff) {
       updateStaff(editingStaff.id, {
-        name,
-        role,
-        contact,
+        name: name.trim(),
+        role: role as StaffRole,
+        phone: phone.trim(),
+        contact: phone.trim(),
+        email: email.trim(),
         hireDate,
-        joinDate: hireDate,
-        status,
-        salary: salaryNum,
-        salaryPeriod,
+        salary: parseFloat(salary) || 0,
+        payPeriod,
+        salaryPeriod: payPeriod,
       });
-      toast.success('Staff member updated');
     } else {
-      addStaff({
-        name,
-        role,
-        contact,
+      const newMember: StaffMember = {
+        id: `staff-${Date.now()}`,
+        name: name.trim(),
+        role: role as StaffRole,
+        phone: phone.trim(),
+        contact: phone.trim(),
+        email: email.trim(),
         hireDate,
-        joinDate: hireDate,
-        status,
-        email: '',
-        shift: 'Morning',
-        salary: salaryNum,
-        salaryPeriod,
-      });
-      toast.success('Staff member added');
+        salary: parseFloat(salary) || 0,
+        payPeriod,
+        salaryPeriod: payPeriod,
+        isActive: true,
+        status: 'Active',
+      };
+      addStaff(newMember);
     }
-
-    setSaving(false);
     onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">
-            {editingStaff ? 'Edit Staff Member' : 'Add Staff Member'}
-          </DialogTitle>
+          <DialogTitle>{editingStaff ? 'Edit Staff Member' : 'Add Staff Member'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Full Name *</Label>
-            <Input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              required
-              placeholder="Enter full name"
-              className="min-h-[44px]"
-            />
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Role *</Label>
-            <Input
-              value={role}
-              onChange={e => setRole(e.target.value)}
-              required
-              placeholder="e.g. Pump Attendant, Cashier"
-              className="min-h-[44px]"
-            />
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Contact</Label>
-            <Input
-              value={contact}
-              onChange={e => setContact(e.target.value)}
-              placeholder="Phone or email"
-              className="min-h-[44px]"
-            />
+          <div className="space-y-1">
+            <Label htmlFor="name">Full Name *</Label>
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Staff name" required />
           </div>
 
-          {/* Salary Section */}
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Salary *</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium select-none">
-                  &#8377;
-                </span>
-                <Input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={salary}
-                  onChange={e => setSalary(e.target.value)}
-                  placeholder="e.g. 18000"
-                  className="pl-7 min-h-[44px]"
-                  required
-                />
-              </div>
-              <Select value={salaryPeriod} onValueChange={v => setSalaryPeriod(v as SalaryPeriod)}>
-                <SelectTrigger className="min-h-[44px] w-[130px]">
+          <div className="space-y-1">
+            <Label>Role *</Label>
+            <Select value={role} onValueChange={v => setRole(v as StaffRole)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map(r => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Mobile number" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="hireDate">Hire Date</Label>
+            <Input id="hireDate" type="date" value={hireDate} onChange={e => setHireDate(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="salary">Salary (₹)</Label>
+              <Input id="salary" type="number" min={0} value={salary} onChange={e => setSalary(e.target.value)} placeholder="e.g. 25000" />
+            </div>
+            <div className="space-y-1">
+              <Label>Pay Period</Label>
+              <Select value={payPeriod} onValueChange={v => setPayPeriod(v as PayPeriod)}>
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="monthly">/ Month</SelectItem>
-                  <SelectItem value="annual">/ Year</SelectItem>
+                  {PAY_PERIODS.map(p => (
+                    <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Hire Date</Label>
-              <Input
-                type="date"
-                value={hireDate}
-                onChange={e => setHireDate(e.target.value)}
-                className="min-h-[44px]"
-              />
-            </div>
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Status</Label>
-              <Select value={status} onValueChange={v => setStatus(v as StaffStatus)}>
-                <SelectTrigger className="min-h-[44px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="min-h-[44px] w-full sm:w-auto">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={saving} className="min-h-[44px] w-full sm:w-auto">
-              {saving
-                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
-                : editingStaff ? 'Update' : 'Add Staff'
-              }
-            </Button>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit">{editingStaff ? 'Save Changes' : 'Add Staff'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

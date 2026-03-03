@@ -114,7 +114,7 @@ export default function Dashboard() {
                   <Progress value={pct} className={`h-2 ${isLow ? '[&>div]:bg-destructive' : ''}`} />
                   <div className="flex justify-between mt-0.5">
                     <span className="text-xs text-muted-foreground">{pct}% full</span>
-                    <span className="text-xs text-muted-foreground">₹{item.pricePerLiter.toFixed(2)}/L</span>
+                    <span className="text-xs text-muted-foreground">₹{item.pricePerLitre.toFixed(2)}/L</span>
                   </div>
                 </div>
               );
@@ -141,8 +141,8 @@ export default function Dashboard() {
                       <p className="font-medium text-foreground">{sale.fuelType}</p>
                       <p className="text-xs text-muted-foreground">{sale.customerName ?? 'Walk-in'}</p>
                     </td>
-                    <td className="py-2 hidden sm:table-cell text-muted-foreground">{sale.quantity}L</td>
-                    <td className="py-2 text-right font-medium text-foreground">{formatINR(sale.totalAmount)}</td>
+                    <td className="py-2 hidden sm:table-cell text-muted-foreground">{sale.litres}L</td>
+                    <td className="py-2 text-right font-medium text-foreground">{formatINR(sale.total)}</td>
                   </tr>
                 ))}
               </tbody>

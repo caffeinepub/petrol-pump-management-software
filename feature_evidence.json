@@ -2,14 +2,12 @@
   "kind": "feature_evidence_report",
   "features": [
     {
-      "featureId": "feature-reset-all-form-fields-to-blank-empty-defaults-automatically-when-each-form-modal-mounts-so-no-pre-populated-values-appear-on-page-load-or-when-opening-a-form-for-new-entry-this-applies-to-all-forms-across-the-application-including-create-purchase-order-purchaseorderformmodal-record-sale-recordsalemodal-add-edit-supplier-supplierformmodal-add-edit-staff-staffformmodal-add-edit-customer-registercustomermodal-add-expense-and-shift-form-shiftformmodal-saved-records-in-the-database-must-not-be-deleted-only-the-form-input-fields-are-reset",
-      "featureTitle": "Reset all form fields to blank/empty defaults automatically when each form/modal mounts, so no pre-populated values appear on page load or when opening a form for new entry. This applies to all forms across the application including: Create Purchase Order (PurchaseOrderFormModal), Record Sale (RecordSaleModal), Add/Edit Supplier (SupplierFormModal), Add/Edit Staff (StaffFormModal), Add/Edit Customer (RegisterCustomerModal), Add Expense, and Shift Form (ShiftFormModal). Saved records in the database must not be deleted — only the form input fields are reset.",
+      "featureId": "feature-build-a-fuel-sales-log-page-where-any-user-no-login-required-can-fill-in-and-submit-a-form-to-record-a-new-fuel-sale-the-form-must-include-date-time-picker-fuel-type-selector-quantity-litres-price-per-litre-auto-calculated-total-amount-vehicle-plate-number-attendant-name-and-payment-method-on-submit-the-record-is-saved-to-the-backend-and-immediately-reflected-in-the-history-list",
+      "featureTitle": "Build a fuel sales log page where any user (no login required) can fill in and submit a form to record a new fuel sale. The form must include: date/time picker, fuel type selector, quantity (litres), price per litre, auto-calculated total amount, vehicle plate number, attendant name, and payment method. On submit the record is saved to the backend and immediately reflected in the history list.",
       "files": [
-        "frontend/src/components/staff/ShiftFormModal.tsx",
-        "frontend/src/components/staff/StaffFormModal.tsx",
-        "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
-        "frontend/src/components/suppliers/SupplierFormModal.tsx",
-        "frontend/src/pages/Expenses.tsx"
+        "frontend/src/App.tsx",
+        "frontend/src/components/layout/Sidebar.tsx",
+        "frontend/src/pages/FuelSalesLog.tsx"
       ],
       "components": [
         "authorization@4.0.0",
@@ -21,7 +19,68 @@
         "github-export-icp-cli@1.0.0"
       ],
       "testIds": [
-        "REQ-1"
+        "REQ-2"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-display-a-full-sales-history-table-showing-all-recorded-fuel-sales-sorted-by-most-recent-first-the-table-must-show-all-fields-date-time-fuel-type-quantity-price-per-litre-total-amount-vehicle-plate-number-attendant-name-payment-method-history-must-always-reflect-persisted-backend-data-and-must-never-be-wiped-or-reset-on-page-load-or-any-action",
+      "featureTitle": "Display a full sales history table showing all recorded fuel sales, sorted by most recent first. The table must show all fields (date/time, fuel type, quantity, price per litre, total amount, vehicle plate number, attendant name, payment method). History must always reflect persisted backend data and must never be wiped or reset on page load or any action.",
+      "files": [
+        "frontend/src/pages/FuelSalesLog.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-3"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-add-a-reporting-and-summary-section-with-1-daily-totals-showing-total-litres-sold-and-total-revenue-for-each-day-2-a-breakdown-of-sales-by-fuel-type-showing-volume-and-revenue-per-type-and-3-an-export-function-that-downloads-the-full-sales-history-as-a-csv-file",
+      "featureTitle": "Add a reporting and summary section with: (1) daily totals showing total litres sold and total revenue for each day, (2) a breakdown of sales by fuel type showing volume and revenue per type, and (3) an export function that downloads the full sales history as a CSV file.",
+      "files": [
+        "frontend/src/pages/FuelSalesLog.tsx",
+        "frontend/src/utils/csvExport.ts"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-4"
+      ],
+      "confidence": "high"
+    },
+    {
+      "featureId": "feature-apply-a-consistent-industrial-fuel-station-visual-theme-across-the-entire-app-dark-navy-or-charcoal-background-amber-or-orange-accent-colors-bold-sans-serif-typography-clean-card-based-layout-for-data-and-summaries-the-theme-must-be-applied-consistently-to-all-pages-forms-tables-and-navigation",
+      "featureTitle": "Apply a consistent industrial / fuel-station visual theme across the entire app: dark navy or charcoal background, amber or orange accent colors, bold sans-serif typography, clean card-based layout for data and summaries. The theme must be applied consistently to all pages, forms, tables, and navigation.",
+      "files": [
+        "frontend/src/pages/FuelSalesLog.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-5"
       ],
       "confidence": "high"
     }

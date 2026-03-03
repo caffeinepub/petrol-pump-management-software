@@ -1,160 +1,111 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAppStore, Customer } from '@/store/appStore';
-import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { useAppStore, Customer } from '../../store/appStore';
 
-interface RegisterCustomerModalProps {
+interface Props {
   open: boolean;
   onClose: () => void;
   editingCustomer?: Customer | null;
 }
 
-export default function RegisterCustomerModal({
-  open,
-  onClose,
-  editingCustomer,
-}: RegisterCustomerModalProps) {
-  const { addCustomer, updateCustomer } = useAppStore();
+export default function RegisterCustomerModal({ open, onClose, editingCustomer }: Props) {
+  const addCustomer = useAppStore(s => s.addCustomer);
+  const updateCustomer = useAppStore(s => s.updateCustomer);
 
   const [name, setName] = useState('');
-  const [contact, setContact] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [vehicleType, setVehicleType] = useState('');
   const [vehicleNumber, setVehicleNumber] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const isEditMode = !!editingCustomer;
 
   useEffect(() => {
     if (open) {
       if (editingCustomer) {
         setName(editingCustomer.name);
-        setContact(editingCustomer.contact);
+        setPhone(editingCustomer.phone ?? editingCustomer.contact ?? '');
+        setEmail(editingCustomer.email);
+        setVehicleType(editingCustomer.vehicleType);
         setVehicleNumber(editingCustomer.vehicleNumber);
       } else {
         setName('');
-        setContact('');
+        setPhone('');
+        setEmail('');
+        setVehicleType('');
         setVehicleNumber('');
       }
-      setErrors({});
-      setIsSubmitting(false);
     }
   }, [open, editingCustomer]);
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    if (!name.trim()) newErrors.name = 'Customer name is required.';
-    if (!contact.trim()) newErrors.contact = 'Contact number is required.';
-    else if (!/^\d{10}$/.test(contact.trim())) newErrors.contact = 'Enter a valid 10-digit contact number.';
-    if (!vehicleNumber.trim()) newErrors.vehicleNumber = 'Vehicle number is required.';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
 
-  const handleSubmit = () => {
-    if (!validate()) return;
-    setIsSubmitting(true);
-    try {
-      if (isEditMode && editingCustomer) {
-        updateCustomer(editingCustomer.id, {
-          name: name.trim(),
-          contact: contact.trim(),
-          vehicleNumber: vehicleNumber.trim().toUpperCase(),
-        });
-        toast.success('Customer updated successfully!');
-      } else {
-        const today = new Date().toISOString().split('T')[0];
-        const newCustomer: Customer = {
-          id: `C${Date.now()}`,
-          name: name.trim(),
-          contact: contact.trim(),
-          vehicleNumber: vehicleNumber.trim().toUpperCase(),
-          loyaltyPoints: 0,
-          totalPurchases: 0,
-          totalPurchaseVolume: 0,
-          registrationDate: today,
-          lastVisit: today,
-        };
-        addCustomer(newCustomer);
-        toast.success('Customer registered successfully!');
-      }
-      onClose();
-    } catch {
-      toast.error('Something went wrong. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    if (editingCustomer) {
+      updateCustomer(editingCustomer.id, {
+        name: name.trim(),
+        phone: phone.trim(),
+        contact: phone.trim(),
+        email: email.trim(),
+        vehicleType: vehicleType.trim(),
+        vehicleNumber: vehicleNumber.trim(),
+      });
+    } else {
+      const newCustomer: Customer = {
+        id: `cust-${Date.now()}`,
+        name: name.trim(),
+        phone: phone.trim(),
+        contact: phone.trim(),
+        email: email.trim(),
+        vehicleType: vehicleType.trim(),
+        vehicleNumber: vehicleNumber.trim(),
+        loyaltyPoints: 0,
+        totalPurchases: 0,
+        totalPurchaseVolume: 0,
+        registrationDate: new Date().toISOString().split('T')[0],
+        lastVisit: new Date().toISOString().split('T')[0],
+      };
+      addCustomer(newCustomer);
     }
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="w-full max-w-md mx-auto max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit Customer' : 'Register Customer'}</DialogTitle>
+          <DialogTitle>{editingCustomer ? 'Edit Customer' : 'Register New Customer'}</DialogTitle>
         </DialogHeader>
-
-        <div className="grid gap-4 py-2">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
-            <Label htmlFor="custName">Customer Name *</Label>
-            <Input
-              id="custName"
-              placeholder="Enter customer name"
-              value={name}
-              onChange={(e) => { setName(e.target.value); setErrors((err) => ({ ...err, name: '' })); }}
-              className="min-h-[44px]"
-            />
-            {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+            <Label htmlFor="name">Full Name *</Label>
+            <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Customer name" required />
           </div>
-
           <div className="space-y-1">
-            <Label htmlFor="custContact">Contact Number *</Label>
-            <Input
-              id="custContact"
-              placeholder="10-digit mobile number"
-              value={contact}
-              onChange={(e) => { setContact(e.target.value); setErrors((err) => ({ ...err, contact: '' })); }}
-              className="min-h-[44px]"
-            />
-            {errors.contact && <p className="text-xs text-destructive">{errors.contact}</p>}
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="10-digit mobile number" />
           </div>
-
           <div className="space-y-1">
-            <Label htmlFor="custVehicle">Vehicle Number *</Label>
-            <Input
-              id="custVehicle"
-              placeholder="e.g. MH12AB1234"
-              value={vehicleNumber}
-              onChange={(e) => { setVehicleNumber(e.target.value); setErrors((err) => ({ ...err, vehicleNumber: '' })); }}
-              className="min-h-[44px]"
-            />
-            {errors.vehicleNumber && <p className="text-xs text-destructive">{errors.vehicleNumber}</p>}
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" />
           </div>
-        </div>
-
-        <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting} className="min-h-[44px] w-full sm:w-auto">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="min-h-[44px] w-full sm:w-auto">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isEditMode ? 'Updating...' : 'Registering...'}
-              </>
-            ) : (
-              isEditMode ? 'Update Customer' : 'Register Customer'
-            )}
-          </Button>
-        </DialogFooter>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="vehicleType">Vehicle Type</Label>
+              <Input id="vehicleType" value={vehicleType} onChange={e => setVehicleType(e.target.value)} placeholder="Car / Bike / Truck" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="vehicleNumber">Vehicle Number</Label>
+              <Input id="vehicleNumber" value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} placeholder="MH12AB1234" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit">{editingCustomer ? 'Save Changes' : 'Register'}</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -1,111 +1,91 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useAppStore } from '../../store/appStore';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import type { OrderStatus } from '../../store/appStore';
+import { useAppStore, FuelType, OrderStatus, PurchaseOrder } from '../../store/appStore';
 
 interface Props {
   open: boolean;
   onClose: () => void;
 }
 
+const ORDER_STATUSES: OrderStatus[] = ['Pending', 'Delivered', 'Cancelled'];
+
 export default function PurchaseOrderFormModal({ open, onClose }: Props) {
-  const addPurchaseOrder = useAppStore(s => s.addPurchaseOrder);
   const suppliers = useAppStore(s => s.suppliers);
+  const addPurchaseOrder = useAppStore(s => s.addPurchaseOrder);
 
   const [supplierId, setSupplierId] = useState('');
-  const [fuelType, setFuelType] = useState('');
+  const [fuelType, setFuelType] = useState<FuelType | ''>('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [invoicePrice, setInvoicePrice] = useState('');
-  const [invoiceDate, setInvoiceDate] = useState('');
-  const [totalLitres, setTotalLitres] = useState('');
+  const [quantity, setQuantity] = useState('');
+  const [pricePerLitre, setPricePerLitre] = useState('');
   const [orderDate, setOrderDate] = useState('');
-  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState('');
+  const [expectedDelivery, setExpectedDelivery] = useState('');
   const [status, setStatus] = useState<OrderStatus>('Pending');
-  const [saving, setSaving] = useState(false);
 
-  // Reset all fields to blank when modal opens for a new entry
   useEffect(() => {
     if (open) {
       setSupplierId('');
       setFuelType('');
       setInvoiceNumber('');
-      setInvoicePrice('');
-      setInvoiceDate('');
-      setTotalLitres('');
+      setQuantity('');
+      setPricePerLitre('');
       setOrderDate('');
-      setExpectedDeliveryDate('');
+      setExpectedDelivery('');
       setStatus('Pending');
-      setSaving(false);
     }
   }, [open]);
 
   const selectedSupplier = suppliers.find(s => s.id === supplierId);
+  const availableFuelTypes: FuelType[] = selectedSupplier
+    ? (selectedSupplier.fuelTypes ?? selectedSupplier.fuelTypesSupplied ?? [])
+    : ['Petrol', 'Diesel', 'CNG', 'LPG'];
 
-  const invoicePriceNum = parseFloat(invoicePrice) || 0;
-  const totalLitresNum = parseFloat(totalLitres) || 0;
+  const qty = parseFloat(quantity) || 0;
+  const price = parseFloat(pricePerLitre) || 0;
+  const totalAmount = qty * price;
 
-  const litrePrice = useMemo(() => {
-    if (totalLitresNum > 0 && invoicePriceNum > 0) {
-      return invoicePriceNum / totalLitresNum;
-    }
-    return 0;
-  }, [invoicePriceNum, totalLitresNum]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supplierId) { toast.error('Select a supplier'); return; }
-    if (!fuelType) { toast.error('Select a fuel type'); return; }
-    if (!totalLitresNum || totalLitresNum <= 0) { toast.error('Enter a valid total litres value'); return; }
-    if (!invoicePriceNum || invoicePriceNum <= 0) { toast.error('Enter a valid invoice price'); return; }
-    if (!invoiceDate) { toast.error('Select an invoice date'); return; }
-    if (orderDate && expectedDeliveryDate && expectedDeliveryDate < orderDate) {
-      toast.error('Delivery date must be after order date');
-      return;
-    }
+    if (!supplierId || !fuelType || !quantity || !pricePerLitre) return;
 
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 300));
-
-    addPurchaseOrder({
+    const supplier = suppliers.find(s => s.id === supplierId);
+    const order: PurchaseOrder = {
+      id: `po-${Date.now()}`,
       supplierId,
-      supplierName: selectedSupplier?.name || 'Unknown',
-      fuelType,
-      quantityOrdered: totalLitresNum,
-      invoiceNumber: invoiceNumber.trim() || undefined,
-      invoicePrice: invoicePriceNum,
-      invoiceDate,
-      totalLitres: totalLitresNum,
-      litrePrice,
-      totalAmount: invoicePriceNum,
-      totalCost: invoicePriceNum,
-      orderDate: orderDate || new Date().toISOString().split('T')[0],
-      expectedDeliveryDate: expectedDeliveryDate || '',
+      supplierName: supplier?.name ?? '',
+      fuelType: fuelType as FuelType,
+      quantity: qty,
+      totalLitres: qty,
+      pricePerLitre: price,
+      litrePrice: price,
+      totalAmount,
+      invoicePrice: totalAmount,
+      orderDate,
+      invoiceDate: orderDate,
+      expectedDelivery,
+      expectedDeliveryDate: expectedDelivery,
       status,
-    });
-
-    toast.success('Purchase order created');
-    setSaving(false);
+      invoiceNumber: invoiceNumber || undefined,
+    };
+    addPurchaseOrder(order);
     onClose();
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Create Purchase Order</DialogTitle>
+          <DialogTitle>Create Purchase Order</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Supplier */}
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Supplier *</Label>
-            <Select value={supplierId} onValueChange={setSupplierId}>
-              <SelectTrigger className="min-h-[44px]">
+          <div className="space-y-1">
+            <Label>Supplier *</Label>
+            <Select value={supplierId} onValueChange={v => { setSupplierId(v); setFuelType(''); }}>
+              <SelectTrigger>
                 <SelectValue placeholder="Select supplier" />
               </SelectTrigger>
               <SelectContent>
@@ -116,145 +96,71 @@ export default function PurchaseOrderFormModal({ open, onClose }: Props) {
             </Select>
           </div>
 
-          {/* Fuel Type */}
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Fuel Type *</Label>
-            <Select value={fuelType} onValueChange={setFuelType}>
-              <SelectTrigger className="min-h-[44px]">
+          <div className="space-y-1">
+            <Label>Fuel Type *</Label>
+            <Select value={fuelType} onValueChange={v => setFuelType(v as FuelType)}>
+              <SelectTrigger>
                 <SelectValue placeholder="Select fuel type" />
               </SelectTrigger>
               <SelectContent>
-                {(selectedSupplier?.fuelTypesSupplied ?? ['Petrol', 'Diesel', 'Premium']).map(ft => (
+                {availableFuelTypes.map(ft => (
                   <SelectItem key={ft} value={ft}>{ft}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Invoice Number */}
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Invoice Number</Label>
-            <Input
-              type="text"
-              value={invoiceNumber}
-              onChange={e => setInvoiceNumber(e.target.value)}
-              placeholder="e.g. IOCL-INV-2024-001"
-              className="min-h-[44px]"
-            />
+          <div className="space-y-1">
+            <Label htmlFor="invoiceNumber">Invoice Number</Label>
+            <Input id="invoiceNumber" value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} placeholder="e.g. INV-2026-001" />
           </div>
 
-          {/* Invoice Price & Invoice Date */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Invoice Price (&#8377;) *</Label>
-              <Input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={invoicePrice}
-                onChange={e => setInvoicePrice(e.target.value)}
-                placeholder="e.g. 967200"
-                required
-                className="min-h-[44px]"
-              />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="quantity">Quantity (Litres) *</Label>
+              <Input id="quantity" type="number" min={0} value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="e.g. 5000" required />
             </div>
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Invoice Date *</Label>
-              <Input
-                type="date"
-                value={invoiceDate}
-                onChange={e => setInvoiceDate(e.target.value)}
-                required
-                className="min-h-[44px]"
-              />
+            <div className="space-y-1">
+              <Label htmlFor="price">Price/Litre (₹) *</Label>
+              <Input id="price" type="number" min={0} step={0.01} value={pricePerLitre} onChange={e => setPricePerLitre(e.target.value)} placeholder="e.g. 94.00" required />
             </div>
           </div>
 
-          {/* Total Litres & Derived Litre Price */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Total Litres *</Label>
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                value={totalLitres}
-                onChange={e => setTotalLitres(e.target.value)}
-                placeholder="e.g. 10000"
-                required
-                className="min-h-[44px]"
-              />
+          {qty > 0 && price > 0 && (
+            <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Total Amount: </span>
+              <span className="font-bold text-foreground">₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Litre Price (&#8377;)</Label>
-              <div className="min-h-[44px] flex items-center px-3 rounded-md border border-border bg-muted text-sm font-medium text-foreground">
-                {totalLitresNum > 0 && invoicePriceNum > 0
-                  ? `\u20B9${litrePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  : <span className="text-muted-foreground">—</span>
-                }
-              </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="orderDate">Order Date</Label>
+              <Input id="orderDate" type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="delivery">Expected Delivery</Label>
+              <Input id="delivery" type="date" value={expectedDelivery} onChange={e => setExpectedDelivery(e.target.value)} />
             </div>
           </div>
 
-          {/* Order Date & Expected Delivery */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Order Date</Label>
-              <Input
-                type="date"
-                value={orderDate}
-                onChange={e => setOrderDate(e.target.value)}
-                className="min-h-[44px]"
-              />
-            </div>
-            <div>
-              <Label className="text-muted-foreground text-xs mb-1.5 block">Expected Delivery</Label>
-              <Input
-                type="date"
-                value={expectedDeliveryDate}
-                onChange={e => setExpectedDeliveryDate(e.target.value)}
-                className="min-h-[44px]"
-              />
-            </div>
-          </div>
-
-          {/* Status */}
-          <div>
-            <Label className="text-muted-foreground text-xs mb-1.5 block">Status</Label>
+          <div className="space-y-1">
+            <Label>Status</Label>
             <Select value={status} onValueChange={v => setStatus(v as OrderStatus)}>
-              <SelectTrigger className="min-h-[44px]">
+              <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Delivered">Delivered</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
+                {ORDER_STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Total Invoice Cost Summary */}
-          <div className="bg-muted rounded-xl p-4 border border-border">
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground text-sm">Total Invoice Cost</span>
-              <span className="text-2xl font-bold text-primary">
-                &#8377;{invoicePriceNum.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </span>
-            </div>
-            {totalLitresNum > 0 && invoicePriceNum > 0 && (
-              <p className="text-xs text-muted-foreground mt-1 text-right">
-                {totalLitresNum.toLocaleString('en-IN')} L &times; &#8377;{litrePrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/L
-              </p>
-            )}
-          </div>
-
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button type="button" variant="outline" onClick={onClose} className="min-h-[44px] w-full sm:w-auto">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={saving} className="min-h-[44px] w-full sm:w-auto">
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : 'Create Order'}
-            </Button>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit">Create Order</Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -1,38 +1,38 @@
 import React from 'react';
-import { Bell, Menu, User } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppStore } from '@/store/appStore';
 
 interface TopBarProps {
-  onMenuClick: () => void;
+  onMenuClick?: () => void;
 }
 
 export default function TopBar({ onMenuClick }: TopBarProps) {
-  const { fuelInventory } = useAppStore();
+  const inventory = useAppStore(s => s.inventory);
 
-  const lowStockCount = fuelInventory.filter(
+  const lowStockCount = inventory.filter(
     (f) => f.currentStock <= f.reorderLevel
   ).length;
 
   return (
-    <header className="h-16 bg-card border-b flex items-center justify-between px-4 shrink-0">
-      {/* Left: hamburger + title */}
+    <header className="h-14 bg-card border-b flex items-center justify-between px-4 shrink-0">
       <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden h-10 w-10"
-          onClick={onMenuClick}
-          aria-label="Open menu"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+        {onMenuClick && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-10 w-10"
+            onClick={onMenuClick}
+            aria-label="Open menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
         <span className="font-semibold text-foreground text-sm sm:text-base hidden sm:block">
           Fuel Station Manager
         </span>
       </div>
 
-      {/* Right: alerts + user */}
       <div className="flex items-center gap-1 sm:gap-2">
         <Button variant="ghost" size="icon" className="relative h-10 w-10" aria-label="Notifications">
           <Bell className="h-5 w-5" />
@@ -41,9 +41,6 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
               {lowStockCount}
             </span>
           )}
-        </Button>
-        <Button variant="ghost" size="icon" className="h-10 w-10" aria-label="User profile">
-          <User className="h-5 w-5" />
         </Button>
       </div>
     </header>

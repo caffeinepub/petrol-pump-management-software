@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAppStore, Staff } from '@/store/appStore';
+import { useAppStore, StaffMember } from '@/store/appStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -22,13 +22,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Search, UserPlus, Pencil, Trash2 } from 'lucide-react';
+import { Search, UserPlus, Pencil, Trash2, Plus } from 'lucide-react';
 import StaffFormModal from '@/components/staff/StaffFormModal';
+import ShiftFormModal from '@/components/staff/ShiftFormModal';
 
 const formatINR = (amount: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 
-/** Returns the monthly equivalent of a salary regardless of pay period */
 const toMonthly = (salary: number, period: 'monthly' | 'annual'): number =>
   period === 'annual' ? salary / 12 : salary;
 
@@ -37,24 +37,25 @@ const formatSalary = (salary: number, period: 'monthly' | 'annual'): string => {
   return `${formatINR(salary)} ${label}`;
 };
 
-const shiftColor: Record<string, string> = {
-  Morning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-  Afternoon: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  Night: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+const shiftTimeColor: Record<string, string> = {
+  '06:00': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  '14:00': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+  '22:00': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
 };
 
-const scheduleStatusColor: Record<string, string> = {
+const shiftStatusColor: Record<string, string> = {
   Scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   Completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   Absent: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
 };
 
 export default function StaffManagement() {
-  const { staff, shiftSchedules, deleteStaff } = useAppStore();
+  const { staff, shifts, deleteStaff } = useAppStore();
   const [search, setSearch] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Staff | null>(null);
+  const [staffModalOpen, setStaffModalOpen] = useState(false);
+  const [shiftModalOpen, setShiftModalOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
 
   const filteredStaff = staff.filter(
     (s) =>
@@ -62,7 +63,6 @@ export default function StaffManagement() {
       s.role.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Total monthly payroll: convert annual salaries to monthly equivalent
   const totalMonthlyPayroll = staff.reduce(
     (sum, s) => sum + toMonthly(s.salary ?? 0, s.salaryPeriod ?? 'monthly'),
     0
@@ -70,12 +70,12 @@ export default function StaffManagement() {
 
   const handleAddStaff = () => {
     setEditingStaff(null);
-    setModalOpen(true);
+    setStaffModalOpen(true);
   };
 
-  const handleEditStaff = (member: Staff) => {
+  const handleEditStaff = (member: StaffMember) => {
     setEditingStaff(member);
-    setModalOpen(true);
+    setStaffModalOpen(true);
   };
 
   const handleDeleteConfirm = () => {
@@ -108,7 +108,7 @@ export default function StaffManagement() {
         <div className="bg-card border rounded-lg p-3 sm:p-4">
           <p className="text-xs sm:text-sm text-muted-foreground">Active</p>
           <p className="text-xl sm:text-2xl font-bold text-foreground">
-            {staff.filter((s) => s.status === 'Active').length}
+            {staff.filter((s) => s.isActive).length}
           </p>
         </div>
         <div className="bg-card border rounded-lg p-3 sm:p-4 col-span-2 sm:col-span-1">
@@ -145,7 +145,6 @@ export default function StaffManagement() {
                     <TableHead className="whitespace-nowrap">Name</TableHead>
                     <TableHead className="whitespace-nowrap">Role</TableHead>
                     <TableHead className="whitespace-nowrap hidden sm:table-cell">Contact</TableHead>
-                    <TableHead className="whitespace-nowrap hidden md:table-cell">Shift</TableHead>
                     <TableHead className="whitespace-nowrap hidden lg:table-cell">Salary</TableHead>
                     <TableHead className="whitespace-nowrap">Status</TableHead>
                     <TableHead className="whitespace-nowrap text-right">Actions</TableHead>
@@ -160,11 +159,6 @@ export default function StaffManagement() {
                       </TableCell>
                       <TableCell className="text-sm">{member.role}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{member.contact}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${shiftColor[member.shift] ?? ''}`}>
-                          {member.shift}
-                        </span>
-                      </TableCell>
                       <TableCell className="hidden lg:table-cell text-sm whitespace-nowrap">
                         {member.salary > 0
                           ? formatSalary(member.salary, member.salaryPeriod ?? 'monthly')
@@ -172,8 +166,8 @@ export default function StaffManagement() {
                         }
                       </TableCell>
                       <TableCell>
-                        <Badge variant={member.status === 'Active' ? 'default' : 'secondary'}>
-                          {member.status}
+                        <Badge variant={member.isActive ? 'default' : 'secondary'}>
+                          {member.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -202,7 +196,7 @@ export default function StaffManagement() {
                   ))}
                   {filteredStaff.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         No staff members found.
                       </TableCell>
                     </TableRow>
@@ -215,6 +209,12 @@ export default function StaffManagement() {
 
         {/* Shift Schedule */}
         <TabsContent value="schedule" className="space-y-4 mt-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setShiftModalOpen(true)} className="min-h-[44px]">
+              <Plus className="mr-2 h-4 w-4" />
+              Schedule Shift
+            </Button>
+          </div>
           <div className="bg-card border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
@@ -222,32 +222,40 @@ export default function StaffManagement() {
                   <TableRow>
                     <TableHead className="whitespace-nowrap">Staff</TableHead>
                     <TableHead className="whitespace-nowrap hidden sm:table-cell">Date</TableHead>
-                    <TableHead className="whitespace-nowrap">Shift</TableHead>
+                    <TableHead className="whitespace-nowrap">Time</TableHead>
                     <TableHead className="whitespace-nowrap hidden md:table-cell">Pump</TableHead>
                     <TableHead className="whitespace-nowrap">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {shiftSchedules.map((schedule) => (
-                    <TableRow key={schedule.id}>
-                      <TableCell>
-                        <p className="font-medium text-foreground">{schedule.staffName}</p>
-                        <p className="text-xs text-muted-foreground sm:hidden">{schedule.date}</p>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm">{schedule.date}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${shiftColor[schedule.shift] ?? ''}`}>
-                          {schedule.shift}
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{schedule.pumpAssigned}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${scheduleStatusColor[schedule.status] ?? ''}`}>
-                          {schedule.status}
-                        </span>
+                  {shifts.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No shifts scheduled.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    shifts.map((shift) => (
+                      <TableRow key={shift.id}>
+                        <TableCell>
+                          <p className="font-medium text-foreground">{shift.staffName}</p>
+                          <p className="text-xs text-muted-foreground sm:hidden">{shift.date}</p>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-sm">{shift.date}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${shiftTimeColor[shift.startTime] ?? 'bg-muted text-muted-foreground'}`}>
+                            {shift.startTime} – {shift.endTime}
+                          </span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">Pump {shift.pumpNumber}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${shiftStatusColor[shift.status] ?? ''}`}>
+                            {shift.status}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -255,14 +263,17 @@ export default function StaffManagement() {
         </TabsContent>
       </Tabs>
 
-      {/* Add / Edit Staff Modal */}
       <StaffFormModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={staffModalOpen}
+        onClose={() => setStaffModalOpen(false)}
         editingStaff={editingStaff}
       />
 
-      {/* Delete Confirmation Dialog */}
+      <ShiftFormModal
+        open={shiftModalOpen}
+        onClose={() => setShiftModalOpen(false)}
+      />
+
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>

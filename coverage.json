@@ -1,48 +1,94 @@
 {
   "kind": "coverage_report",
   "version": "1.0",
-  "generatedAt": "2026-03-03T12:09:01.874Z",
+  "generatedAt": "2026-03-03T14:08:19.339Z",
   "sources": {
     "buildRequest": true,
     "implementationPlan": true
   },
   "requirements": {
-    "total": 1,
-    "implemented": 1,
+    "total": 5,
+    "implemented": 4,
     "items": [
       {
         "id": "REQ-1",
-        "summary": "Reset all form fields to blank/empty defaults automatically when each form/modal mounts, so no pre-populated values appear on page load or when opening a form for new entry. This applies to all forms across the application including: Create Purchase Order (PurchaseOrderFormModal), Record Sale (RecordSaleModal), Add/Edit Supplier (SupplierFormModal), Add/Edit Staff (StaffFormModal), Add/Edit Customer (RegisterCustomerModal), Add Expense, and Shift Form (ShiftFormModal). Saved records in the database must not be deleted — only the form input fields are reset.",
+        "summary": "Create a backend data model and storage for fuel sale records with fields: date/time, fuel type (e.g. Petrol, Diesel, Premium), quantity in litres, price per litre, total amount, vehicle plate number, attendant name, and payment method. Expose functions to create a new sale record and retrieve all sale records. Records must be persisted and never wiped on upgrade.",
+        "status": "unknown",
+        "plannedFiles": [],
+        "matchedFiles": []
+      },
+      {
+        "id": "REQ-2",
+        "summary": "Build a fuel sales log page where any user (no login required) can fill in and submit a form to record a new fuel sale. The form must include: date/time picker, fuel type selector, quantity (litres), price per litre, auto-calculated total amount, vehicle plate number, attendant name, and payment method. On submit the record is saved to the backend and immediately reflected in the history list.",
         "status": "implemented",
         "plannedFiles": [
-          "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
-          "frontend/src/components/sales/RecordSaleModal.tsx",
-          "frontend/src/components/suppliers/SupplierFormModal.tsx",
-          "frontend/src/components/staff/StaffFormModal.tsx",
-          "frontend/src/components/customers/RegisterCustomerModal.tsx",
-          "frontend/src/components/staff/ShiftFormModal.tsx",
-          "frontend/src/pages/Expenses.tsx"
+          "frontend/src/pages/FuelSalesLog.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/components/layout/Sidebar.tsx"
         ],
         "matchedFiles": [
-          "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
-          "frontend/src/components/suppliers/SupplierFormModal.tsx",
-          "frontend/src/components/staff/StaffFormModal.tsx",
-          "frontend/src/components/staff/ShiftFormModal.tsx",
-          "frontend/src/pages/Expenses.tsx"
+          "frontend/src/pages/FuelSalesLog.tsx",
+          "frontend/src/App.tsx",
+          "frontend/src/components/layout/Sidebar.tsx"
+        ]
+      },
+      {
+        "id": "REQ-3",
+        "summary": "Display a full sales history table showing all recorded fuel sales, sorted by most recent first. The table must show all fields (date/time, fuel type, quantity, price per litre, total amount, vehicle plate number, attendant name, payment method). History must always reflect persisted backend data and must never be wiped or reset on page load or any action.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/FuelSalesLog.tsx",
+          "frontend/src/hooks/useFuelSales.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/FuelSalesLog.tsx"
+        ]
+      },
+      {
+        "id": "REQ-4",
+        "summary": "Add a reporting and summary section with: (1) daily totals showing total litres sold and total revenue for each day, (2) a breakdown of sales by fuel type showing volume and revenue per type, and (3) an export function that downloads the full sales history as a CSV file.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/pages/FuelSalesLog.tsx",
+          "frontend/src/utils/csvExport.ts"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/FuelSalesLog.tsx",
+          "frontend/src/utils/csvExport.ts"
+        ]
+      },
+      {
+        "id": "REQ-5",
+        "summary": "Apply a consistent industrial / fuel-station visual theme across the entire app: dark navy or charcoal background, amber or orange accent colors, bold sans-serif typography, clean card-based layout for data and summaries. The theme must be applied consistently to all pages, forms, tables, and navigation.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/index.css",
+          "frontend/tailwind.config.js",
+          "frontend/src/pages/FuelSalesLog.tsx",
+          "frontend/src/components/layout/AppLayout.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/pages/FuelSalesLog.tsx"
         ]
       }
     ]
   },
   "changedFiles": [
+    "backend/main.mo",
     "build-request.json",
     "feature_evidence.json",
     "frontend-file-summaries.txt",
     "frontend-implementation-plan.json",
-    "frontend/src/components/staff/ShiftFormModal.tsx",
-    "frontend/src/components/staff/StaffFormModal.tsx",
-    "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
-    "frontend/src/components/suppliers/SupplierFormModal.tsx",
-    "frontend/src/pages/Expenses.tsx",
+    "frontend/public/assets/generated/banner-hero.dim_1200x300.png",
+    "frontend/src/App.tsx",
+    "frontend/src/backend.d.ts",
+    "frontend/src/backend.ts",
+    "frontend/src/components/layout/Sidebar.tsx",
+    "frontend/src/declarations/backend.did.d.ts",
+    "frontend/src/declarations/backend.did.js",
+    "frontend/src/hooks/useQueries.ts",
+    "frontend/src/pages/FuelSalesLog.tsx",
+    "frontend/src/utils/csvExport.ts",
     "project_state.json",
     "scratch/component-selection.json",
     "spec.md",

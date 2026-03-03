@@ -10,8 +10,24 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface FuelSaleRecord {
+  'paymentMethod' : PaymentMethod,
+  'pricePerLitre' : bigint,
+  'vehiclePlate' : string,
+  'attendantName' : string,
+  'quantityLitres' : bigint,
+  'fuelType' : FuelType,
+  'totalAmount' : bigint,
+  'timestamp' : bigint,
+}
+export type FuelType = { 'premium' : null } |
+  { 'petrol' : null } |
+  { 'diesel' : null };
 export type PayPeriod = { 'annual' : null } |
   { 'monthly' : null };
+export type PaymentMethod = { 'mobileMoney' : null } |
+  { 'creditCard' : null } |
+  { 'cash' : null };
 export interface Salary { 'payPeriod' : PayPeriod, 'amount' : bigint }
 export interface UserProfile {
   'contact' : string,
@@ -51,6 +67,14 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  /**
+   * / Create a new fuel sale record. Only authenticated users (attendants) can create records.
+   */
+  'createSaleRecord' : ActorMethod<[FuelSaleRecord], undefined>,
+  /**
+   * / Retrieve all fuel sale records. Only authenticated users can view sales data.
+   */
+  'getAllSaleRecords' : ActorMethod<[], Array<FuelSaleRecord>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,

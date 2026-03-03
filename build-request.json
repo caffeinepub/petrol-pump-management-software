@@ -1,47 +1,114 @@
 {
   "kind": "build_request",
-  "title": "Auto-clear all form fields on page load for fresh data entry",
-  "projectName": "Petrol Pump Manager",
+  "title": "Build Fuel Station Sales Tracker",
+  "projectName": "Fuel Station Tracker",
   "priority": "normal",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Reset all form fields to blank/empty defaults automatically when each form/modal mounts, so no pre-populated values appear on page load or when opening a form for new entry. This applies to all forms across the application including: Create Purchase Order (PurchaseOrderFormModal), Record Sale (RecordSaleModal), Add/Edit Supplier (SupplierFormModal), Add/Edit Staff (StaffFormModal), Add/Edit Customer (RegisterCustomerModal), Add Expense, and Shift Form (ShiftFormModal). Saved records in the database must not be deleted — only the form input fields are reset.",
-      "target": "frontend",
+      "text": "Create a backend data model and storage for fuel sale records with fields: date/time, fuel type (e.g. Petrol, Diesel, Premium), quantity in litres, price per litre, total amount, vehicle plate number, attendant name, and payment method. Expose functions to create a new sale record and retrieve all sale records. Records must be persisted and never wiped on upgrade.",
+      "target": "backend",
       "source": {
         "messageIds": [
-          "msg-recent"
-        ],
-        "quotes": [
-          "Clear all form fields (resetting all inputs to blank) so the form is ready for fresh data entry",
-          "This will happen automatically when the page loads, with no pre-populated values",
-          "No saved/stored records will be deleted — only the form inputs will be reset"
+          "msg-12",
+          "msg-14",
+          "msg-16"
         ]
       },
       "acceptanceCriteria": [
-        "Opening PurchaseOrderFormModal for a new entry shows all fields blank with no pre-populated date, supplier, fuel type, invoice number, or quantity values.",
-        "Opening RecordSaleModal shows all fields blank with no pre-populated fuel type, quantity, payment method, pump number, or staff values.",
-        "Opening SupplierFormModal for a new supplier shows all fields blank.",
-        "Opening StaffFormModal for a new staff member shows all fields blank including hire date and salary.",
-        "Opening RegisterCustomerModal for a new customer shows all fields blank.",
-        "Opening ShiftFormModal shows all fields blank including date, start/end time, and pump number.",
-        "Expense entry form opens with all fields blank.",
-        "Existing saved records in the store and database are unaffected after forms are reset.",
-        "Edit forms (when opened for an existing record) still correctly populate with that record's data — only 'new entry' forms open blank."
+        "A fuel sale record can be created with all required fields via a backend call.",
+        "All previously saved records are returned when querying the sale history.",
+        "Records survive canister upgrades — no data loss on redeploy.",
+        "No authentication is required to call any backend function."
+      ]
+    },
+    {
+      "id": "REQ-2",
+      "text": "Build a fuel sales log page where any user (no login required) can fill in and submit a form to record a new fuel sale. The form must include: date/time picker, fuel type selector, quantity (litres), price per litre, auto-calculated total amount, vehicle plate number, attendant name, and payment method. On submit the record is saved to the backend and immediately reflected in the history list.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-12",
+          "msg-14",
+          "msg-16"
+        ]
+      },
+      "acceptanceCriteria": [
+        "The form contains all required fields: date/time, fuel type, quantity, price per litre, total amount (auto-calculated), vehicle plate number, attendant name, payment method.",
+        "Submitting the form saves the record to the backend.",
+        "The new record immediately appears in the sales history list after submission.",
+        "No login or authentication is required to access or submit the form."
+      ]
+    },
+    {
+      "id": "REQ-3",
+      "text": "Display a full sales history table showing all recorded fuel sales, sorted by most recent first. The table must show all fields (date/time, fuel type, quantity, price per litre, total amount, vehicle plate number, attendant name, payment method). History must always reflect persisted backend data and must never be wiped or reset on page load or any action.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-12",
+          "msg-14",
+          "msg-16"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All saved fuel sale records are displayed in the history table.",
+        "Records are sorted with the most recent at the top.",
+        "All 8 data fields are visible in the table.",
+        "Reloading the page does not wipe or reset the history — all records persist."
+      ]
+    },
+    {
+      "id": "REQ-4",
+      "text": "Add a reporting and summary section with: (1) daily totals showing total litres sold and total revenue for each day, (2) a breakdown of sales by fuel type showing volume and revenue per type, and (3) an export function that downloads the full sales history as a CSV file.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-14",
+          "msg-16"
+        ]
+      },
+      "acceptanceCriteria": [
+        "A daily totals summary shows total litres and revenue grouped by date.",
+        "A fuel type breakdown shows total litres and revenue per fuel type.",
+        "An export button downloads all sales records as a CSV file with all fields included.",
+        "Summaries update automatically when new sales are added."
+      ]
+    },
+    {
+      "id": "REQ-5",
+      "text": "Apply a consistent industrial / fuel-station visual theme across the entire app: dark navy or charcoal background, amber or orange accent colors, bold sans-serif typography, clean card-based layout for data and summaries. The theme must be applied consistently to all pages, forms, tables, and navigation.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-16"
+        ]
+      },
+      "acceptanceCriteria": [
+        "All pages use a cohesive dark navy/charcoal and amber/orange color palette.",
+        "Typography is bold and legible throughout.",
+        "Data tables, forms, and summary cards follow a consistent card-based layout.",
+        "No page deviates from the established visual theme."
       ]
     }
   ],
   "constraints": [
-    "Do not delete or modify any saved records in the backend or Zustand store — only reset form input state.",
-    "Edit/update forms opened for an existing record must still pre-populate with that record's current values."
+    "No login or authentication is required — all features must be accessible without signing in.",
+    "Fuel sale records must never be wiped or overwritten on page load, form submission, or canister upgrade.",
+    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui."
   ],
   "nonGoals": [
-    "Adding a manual 'Clear' or 'Reset' button — clearing is automatic on mount only.",
-    "Clearing or resetting data in the backend canister.",
-    "Modifying the dashboard, reports, or read-only display pages."
+    "User authentication or Internet Identity login.",
+    "Inventory/stock management beyond what is needed for sales logging.",
+    "Staff management, shift scheduling, or payroll features.",
+    "Customer loyalty points or customer profile management.",
+    "Supplier or purchase order management.",
+    "Billing or invoice generation."
   ],
   "imageRequirements": {
-    "required": [],
+    "required": [
+      "Fuel station banner illustration with a dark night-time atmosphere, amber-lit fuel pumps and a canopy, wide landscape format (banner-hero.dim_1200x300.png)"
+    ],
     "edits": []
   }
 }

@@ -1,126 +1,104 @@
 import React, { useState } from 'react';
-import { useAppStore, Invoice } from '@/store/appStore';
+import { useAppStore, Invoice, InvoiceStatus } from '../store/appStore';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Search, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import InvoiceDetailModal from '@/components/billing/InvoiceDetailModal';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, FileText, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import InvoiceDetailModal from '../components/billing/InvoiceDetailModal';
 
-const formatINR = (amount: number) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amount);
+const formatINR = (n: number) =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n);
 
-const statusConfig: Record<string, { color: string; icon: React.ReactNode }> = {
-  Paid: { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle className="h-3 w-3" /> },
-  Unpaid: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <Clock className="h-3 w-3" /> },
-  Overdue: { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', icon: <AlertCircle className="h-3 w-3" /> },
+const statusVariant: Record<InvoiceStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  Paid: 'default',
+  Pending: 'secondary',
+  Overdue: 'destructive',
 };
 
 export default function Billing() {
-  const { invoices, updateInvoiceStatus } = useAppStore();
+  const invoices = useAppStore(s => s.invoices);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
-  const filtered = invoices.filter((inv) => {
-    const matchSearch =
-      inv.id.toLowerCase().includes(search.toLowerCase()) ||
-      inv.customerName.toLowerCase().includes(search.toLowerCase()) ||
-      inv.invoiceNumber.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || inv.status === statusFilter;
-    return matchSearch && matchStatus;
-  });
+  const filtered = invoices.filter(inv =>
+    inv.customerName.toLowerCase().includes(search.toLowerCase()) ||
+    (inv.invoiceNumber ?? inv.id).toLowerCase().includes(search.toLowerCase())
+  );
 
-  const paid = invoices.filter((i) => i.status === 'Paid').reduce((s, i) => s + i.totalAmount, 0);
-  const unpaid = invoices.filter((i) => i.status === 'Unpaid').reduce((s, i) => s + i.totalAmount, 0);
-  const overdue = invoices.filter((i) => i.status === 'Overdue').reduce((s, i) => s + i.totalAmount, 0);
+  const paid = invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + (i.total ?? i.totalAmount ?? 0), 0);
+  const unpaid = invoices.filter(i => i.status === 'Pending').reduce((s, i) => s + (i.total ?? i.totalAmount ?? 0), 0);
+  const overdue = invoices.filter(i => i.status === 'Overdue').reduce((s, i) => s + (i.total ?? i.totalAmount ?? 0), 0);
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Billing</h1>
-          <p className="text-sm text-muted-foreground">Manage invoices and payments</p>
-        </div>
+    <div className="p-4 md:p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Billing & Invoices</h1>
+        <p className="text-muted-foreground text-sm mt-1">Manage customer invoices and payment status</p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
-          <div className="p-2 bg-green-500/10 rounded-lg">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Paid</p>
-            <p className="text-lg font-bold text-foreground">{formatINR(paid)}</p>
-          </div>
-        </div>
-        <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
-          <div className="p-2 bg-yellow-500/10 rounded-lg">
-            <Clock className="h-5 w-5 text-yellow-500" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Unpaid</p>
-            <p className="text-lg font-bold text-foreground">{formatINR(unpaid)}</p>
-          </div>
-        </div>
-        <div className="bg-card border rounded-lg p-4 flex items-center gap-3">
-          <div className="p-2 bg-red-500/10 rounded-lg">
-            <AlertCircle className="h-5 w-5 text-red-500" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Overdue</p>
-            <p className="text-lg font-bold text-foreground">{formatINR(overdue)}</p>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-success" /> Paid
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-foreground">{formatINR(paid)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{invoices.filter(i => i.status === 'Paid').length} invoices</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Clock className="w-4 h-4 text-warning" /> Pending
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-foreground">{formatINR(unpaid)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{invoices.filter(i => i.status === 'Pending').length} invoices</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-destructive" /> Overdue
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-foreground">{formatINR(overdue)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{invoices.filter(i => i.status === 'Overdue').length} invoices</p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search invoices..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 min-h-[44px]"
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {['all', 'Paid', 'Unpaid', 'Overdue'].map((s) => (
-            <Button
-              key={s}
-              variant={statusFilter === s ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter(s)}
-              className="min-h-[44px] capitalize"
-            >
-              {s === 'all' ? 'All' : s}
-            </Button>
-          ))}
-        </div>
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          className="pl-9"
+          placeholder="Search by customer or invoice #..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
       </div>
 
-      {/* Invoices Table */}
-      <div className="bg-card border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="whitespace-nowrap">Invoice #</TableHead>
-                <TableHead className="whitespace-nowrap">Customer</TableHead>
-                <TableHead className="whitespace-nowrap hidden sm:table-cell">Date</TableHead>
-                <TableHead className="whitespace-nowrap hidden md:table-cell">Due Date</TableHead>
-                <TableHead className="whitespace-nowrap">Amount</TableHead>
-                <TableHead className="whitespace-nowrap">Status</TableHead>
-                <TableHead className="whitespace-nowrap">Actions</TableHead>
+                <TableHead>Invoice #</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead className="hidden md:table-cell">Date</TableHead>
+                <TableHead className="hidden md:table-cell">Due Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -131,63 +109,39 @@ export default function Billing() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((invoice) => {
-                  const sc = statusConfig[invoice.status];
-                  return (
-                    <TableRow key={invoice.id}>
-                      <TableCell className="font-mono text-xs">{invoice.invoiceNumber}</TableCell>
-                      <TableCell className="text-sm">
-                        <p>{invoice.customerName}</p>
-                        <p className="text-xs text-muted-foreground sm:hidden">{invoice.date}</p>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-sm">{invoice.date}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{invoice.dueDate}</TableCell>
-                      <TableCell className="text-sm font-medium">{formatINR(invoice.totalAmount)}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${sc?.color ?? ''}`}>
-                          {sc?.icon}
-                          {invoice.status}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={() => setSelectedInvoice(invoice)}
-                          >
-                            <FileText className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          {invoice.status === 'Unpaid' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-xs text-green-600 hover:text-green-700"
-                              onClick={() => updateInvoiceStatus(invoice.id, 'Paid')}
-                            >
-                              Mark Paid
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                filtered.map(invoice => (
+                  <TableRow key={invoice.id}>
+                    <TableCell className="font-mono text-xs">{invoice.invoiceNumber ?? invoice.id}</TableCell>
+                    <TableCell className="font-medium text-sm">{invoice.customerName}</TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{invoice.date}</TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{invoice.dueDate}</TableCell>
+                    <TableCell className="text-sm font-medium">{formatINR(invoice.total ?? invoice.totalAmount ?? 0)}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant[invoice.status]}>{invoice.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="ghost" onClick={() => setSelectedInvoice(invoice)}>
+                        <FileText className="w-4 h-4" />
+                      </Button>
+                      {invoice.status !== 'Paid' && (
+                        <Button size="sm" variant="ghost" className="text-success" onClick={() => setSelectedInvoice(invoice)}>
+                          Pay
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {selectedInvoice && (
-        <InvoiceDetailModal
-          invoice={selectedInvoice}
-          open={!!selectedInvoice}
-          onClose={() => setSelectedInvoice(null)}
-        />
-      )}
+      <InvoiceDetailModal
+        invoice={selectedInvoice}
+        open={!!selectedInvoice}
+        onClose={() => setSelectedInvoice(null)}
+      />
     </div>
   );
 }

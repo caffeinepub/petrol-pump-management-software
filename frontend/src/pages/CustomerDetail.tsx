@@ -1,130 +1,134 @@
-import { useState } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from '@tanstack/react-router';
-import { useAppStore, CustomerPurchase } from '../store/appStore';
-import { Button } from '@/components/ui/button';
+import { useAppStore } from '../store/appStore';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Star, ShoppingBag, Gift } from 'lucide-react';
-import RedeemPointsModal from '../components/customers/RedeemPointsModal';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Phone, Mail, Car, Star, ShoppingBag } from 'lucide-react';
 
-const formatINR = (amount: number) =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(amount);
+const formatINR = (n: number) =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
 export default function CustomerDetail() {
   const { customerId } = useParams({ from: '/layout/customers/$customerId' });
   const navigate = useNavigate();
   const customers = useAppStore(s => s.customers);
-  const customerPurchases = useAppStore(s => s.customerPurchases);
-  const [showRedeem, setShowRedeem] = useState(false);
+  const fuelSales = useAppStore(s => s.fuelSales);
 
   const customer = customers.find(c => c.id === customerId);
-  const purchases: CustomerPurchase[] = customerPurchases[customerId] ?? [];
 
   if (!customer) {
     return (
-      <div className="text-center py-20 p-6">
+      <div className="p-6 text-center">
         <p className="text-muted-foreground">Customer not found.</p>
-        <Button onClick={() => navigate({ to: '/customers' })} className="mt-4">
+        <Button variant="outline" className="mt-4" onClick={() => navigate({ to: '/customers' })}>
           Back to Customers
         </Button>
       </div>
     );
   }
 
-  return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Back button */}
-      <Button
-        variant="ghost"
-        onClick={() => navigate({ to: '/customers' })}
-        className="text-muted-foreground hover:text-foreground -ml-2"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Customers
-      </Button>
+  const customerSales = fuelSales.filter(s => s.customerId === customerId);
+  const totalSpent = customerSales.reduce((sum, s) => sum + (s.total ?? s.totalAmount ?? 0), 0);
+  const totalLitres = customerSales.reduce((sum, s) => sum + (s.litres ?? s.quantity ?? 0), 0);
 
-      {/* Customer Header */}
-      <div className="bg-card rounded-2xl border border-border p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
-              <span className="text-primary text-xl sm:text-2xl font-bold">
-                {customer.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
-              </span>
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">{customer.name}</h2>
-              <p className="text-muted-foreground text-sm">{customer.contact}</p>
-              <Badge variant="outline" className="mt-1 font-mono text-xs">
-                {customer.vehicleNumber}
-              </Badge>
-            </div>
-          </div>
-          <Button
-            onClick={() => setShowRedeem(true)}
-            className="min-h-[44px] w-full sm:w-auto"
-          >
-            <Gift className="w-4 h-4 mr-2" />
-            Redeem Points
-          </Button>
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => navigate({ to: '/customers' })}>
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{customer.name}</h1>
+          <p className="text-muted-foreground text-sm">Customer Profile</p>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Contact Info */}
+        <Card className="md:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-base">Contact Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              <Phone className="w-4 h-4 text-muted-foreground" />
+              <span className="text-foreground">{customer.phone ?? customer.contact ?? '—'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Mail className="w-4 h-4 text-muted-foreground" />
+              <span className="text-foreground">{customer.email || '—'}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Car className="w-4 h-4 text-muted-foreground" />
+              <span className="text-foreground">{customer.vehicleType} · {customer.vehicleNumber}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Star className="w-4 h-4 text-warning" />
+              <span className="text-foreground">{customer.loyaltyPoints} loyalty points</span>
+            </div>
+            <div className="pt-2 border-t border-border">
+              <p className="text-xs text-muted-foreground">Member since {customer.registrationDate}</p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mt-4 sm:mt-6">
-          <div className="bg-muted rounded-xl p-3 sm:p-4 border border-border">
-            <p className="text-muted-foreground text-xs mb-1">Registered</p>
-            <p className="text-foreground font-semibold text-sm">
-              {new Date(customer.registrationDate).toLocaleDateString('en-IN')}
-            </p>
-          </div>
-          <div className="bg-muted rounded-xl p-3 sm:p-4 border border-border">
-            <p className="text-muted-foreground text-xs mb-1">Total Volume</p>
-            <p className="text-foreground font-semibold text-sm">
-              {customer.totalPurchaseVolume.toLocaleString('en-IN')}L
-            </p>
-          </div>
-          <div className="bg-primary/10 rounded-xl p-3 sm:p-4 border border-primary/30 col-span-2 sm:col-span-1">
-            <p className="text-primary text-xs mb-1 flex items-center gap-1">
-              <Star className="w-3 h-3" />
-              Loyalty Points
-            </p>
-            <p className="text-primary text-2xl font-bold">{customer.loyaltyPoints.toLocaleString('en-IN')}</p>
-          </div>
-        </div>
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Purchase Statistics</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-4">
+            <div className="bg-muted/50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Total Spent</p>
+              <p className="text-xl font-bold text-foreground">{formatINR(totalSpent)}</p>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Total Volume</p>
+              <p className="text-xl font-bold text-foreground">
+                {totalLitres.toLocaleString('en-IN')}L
+              </p>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Transactions</p>
+              <p className="text-xl font-bold text-foreground">{customerSales.length}</p>
+            </div>
+            <div className="bg-muted/50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Loyalty Points</p>
+              <p className="text-xl font-bold text-foreground">{customer.loyaltyPoints}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Purchase History */}
-      <div className="bg-card rounded-2xl border border-border p-4 sm:p-5">
-        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-          <ShoppingBag className="w-5 h-5 text-primary" />
-          Purchase History ({purchases.length})
-        </h3>
-        {purchases.length === 0 ? (
-          <p className="text-muted-foreground text-sm text-center py-8">No purchases yet</p>
-        ) : (
-          <div className="space-y-2">
-            {purchases.map((p: CustomerPurchase) => (
-              <div key={p.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline">{p.fuelType}</Badge>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4" /> Purchase History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {customerSales.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-4">No purchases recorded yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {customerSales.map(sale => (
+                <div key={sale.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                   <div>
-                    <p className="text-sm text-foreground font-medium">{p.quantity}L</p>
-                    <p className="text-xs text-muted-foreground">{new Date(p.date).toLocaleString('en-IN')}</p>
+                    <p className="text-sm font-medium text-foreground">{sale.fuelType}</p>
+                    <p className="text-xs text-muted-foreground">{sale.date} · {sale.litres ?? sale.quantity}L · Pump {sale.pumpNumber}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-foreground">{formatINR(sale.total ?? sale.totalAmount ?? 0)}</p>
+                    <Badge variant="outline" className="text-xs">{sale.paymentMethod}</Badge>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-primary font-semibold text-sm">{formatINR(p.amount)}</p>
-                  <p className="text-xs text-muted-foreground flex items-center justify-end gap-1">
-                    <Star className="w-3 h-3 text-primary" />
-                    +{p.pointsEarned} pts
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <RedeemPointsModal open={showRedeem} onClose={() => setShowRedeem(false)} customer={customer} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

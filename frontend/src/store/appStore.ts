@@ -1,89 +1,127 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-export type FuelType = 'Petrol' | 'Diesel' | 'Premium';
+export type FuelType = 'Petrol' | 'Diesel' | 'CNG' | 'LPG' | 'EV';
+
 export type PaymentMethod = 'Cash' | 'Card' | 'UPI' | 'Credit';
-export type StaffStatus = 'Active' | 'Inactive';
-export type SalaryPeriod = 'monthly' | 'annual';
-export type ShiftStatus = 'Scheduled' | 'Active' | 'Completed';
+
+export type StaffRole = 'Manager' | 'Attendant' | 'Cashier' | 'Technician' | 'Security';
+
+export type PayPeriod = 'monthly' | 'annual';
+
+// Aliases for backward compat
+export type SalaryPeriod = PayPeriod;
+
+export type ShiftStatus = 'Scheduled' | 'Completed' | 'Absent';
+
 export type OrderStatus = 'Pending' | 'Delivered' | 'Cancelled';
-export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Overdue';
+
+export type InvoiceStatus = 'Paid' | 'Pending' | 'Overdue';
+
+export type ExpenseCategory =
+  | 'Fuel Purchase'
+  | 'Maintenance'
+  | 'Utilities'
+  | 'Salaries'
+  | 'Equipment'
+  | 'Other';
+
+export interface FuelInventory {
+  id: string;
+  fuelType: FuelType;
+  currentStock: number;
+  capacity: number;
+  pricePerLitre: number;
+  /** Alias kept for backward compat */
+  pricePerLiter?: number;
+  reorderLevel: number;
+  lastUpdated: string;
+}
 
 export interface FuelSale {
   id: string;
   date: string;
-  fuelType: string;
+  fuelType: FuelType;
+  litres: number;
   quantity: number;
+  pricePerLitre: number;
   pricePerLiter: number;
+  total: number;
   totalAmount: number;
-  paymentMethod: string;
-  pumpNumber: string;
-  staffName: string;
+  paymentMethod: PaymentMethod;
+  customerId?: string;
   customerName?: string;
-  loyaltyPoints?: number;
-}
-
-export interface StockLevel {
-  fuelType: FuelType;
-  currentLevel: number;
-  capacity: number;
-  threshold: number;
-}
-
-export interface StockHistoryEntry {
-  id: string;
-  date: string;
-  fuelType: FuelType;
-  changeAmount: number;
-  reason: string;
+  pumpNumber: number;
   recordedBy: string;
-  type: 'sale' | 'purchase' | 'adjustment';
-}
-
-export interface FuelInventoryItem {
-  fuelType: string;
-  currentStock: number;
-  capacity: number;
-  pricePerLiter: number;
-  reorderLevel: number;
-  lastUpdated: string;
+  staffName: string;
 }
 
 export interface Customer {
   id: string;
   name: string;
+  phone: string;
+  email: string;
   contact: string;
+  vehicleType: string;
   vehicleNumber: string;
   loyaltyPoints: number;
   totalPurchases: number;
-  registrationDate: string;
   totalPurchaseVolume: number;
-  lastVisit: string;
+  registrationDate: string;
+  lastVisit?: string;
 }
 
-export interface CustomerPurchase {
-  id: string;
-  date: string;
-  fuelType: FuelType;
-  quantity: number;
-  amount: number;
-  pointsEarned: number;
-}
-
-export interface Staff {
+export interface Supplier {
   id: string;
   name: string;
-  role: string;
   contact: string;
   email: string;
-  shift: string;
-  salary: number;
-  salaryPeriod: SalaryPeriod;
-  joinDate: string;
-  hireDate: string;
-  status: StaffStatus;
+  address: string;
+  fuelTypes: FuelType[];
+  fuelTypesSupplied: FuelType[];
+  rating: number;
+  lastDelivery: string;
 }
+
+export interface PurchaseOrder {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  fuelType: FuelType;
+  quantity: number;
+  totalLitres: number;
+  pricePerLitre: number;
+  litrePrice: number;
+  totalAmount: number;
+  invoicePrice: number;
+  orderDate: string;
+  invoiceDate: string;
+  expectedDelivery: string;
+  expectedDeliveryDate: string;
+  status: OrderStatus;
+  invoiceNumber?: string;
+}
+
+export interface StaffMember {
+  id: string;
+  name: string;
+  role: StaffRole;
+  phone: string;
+  contact: string;
+  email: string;
+  hireDate: string;
+  salary: number;
+  payPeriod: PayPeriod;
+  salaryPeriod: PayPeriod;
+  isActive: boolean;
+  status: 'Active' | 'Inactive';
+  shift?: string;
+}
+
+// Alias export
+export type Staff = StaffMember;
 
 export interface Shift {
   id: string;
@@ -96,34 +134,34 @@ export interface Shift {
   status: ShiftStatus;
 }
 
-export interface ShiftSchedule {
+export interface Expense {
   id: string;
-  staffId: string;
-  staffName: string;
   date: string;
-  shift: 'Morning' | 'Afternoon' | 'Night';
-  pumpAssigned: string;
-  status: 'Scheduled' | 'Completed' | 'Absent';
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  paymentMethod: PaymentMethod;
+  approvedBy: string;
+  recordedBy?: string;
 }
 
 export interface Invoice {
   id: string;
-  invoiceNumber: string;
-  customerId?: string;
+  invoiceNumber?: string;
+  customerId: string;
   customerName: string;
-  saleId: string;
-  fuelType: FuelType;
-  quantity: number;
-  pricePerLiter: number;
+  date: string;
+  dueDate: string;
+  items: InvoiceItem[];
   subtotal: number;
   tax: number;
   total: number;
   totalAmount: number;
-  date: string;
-  dueDate: string;
-  paymentMethod?: string;
+  fuelType?: FuelType;
+  quantity?: number;
+  pricePerLiter?: number;
+  paymentMethod?: PaymentMethod;
   status: InvoiceStatus;
-  items?: InvoiceItem[];
 }
 
 export interface InvoiceItem {
@@ -133,365 +171,410 @@ export interface InvoiceItem {
   total: number;
 }
 
-export interface Supplier {
-  id: string;
-  name: string;
-  contact: string;
-  email: string;
-  address: string;
-  fuelTypesSupplied: string[];
-  rating: number;
-  lastDelivery: string;
-}
-
-export interface PurchaseOrder {
-  id: string;
-  supplierId: string;
-  supplierName: string;
-  fuelType: string;
-  quantityOrdered: number;  // same as totalLitres
-  invoiceNumber?: string;   // optional user-entered invoice number
-  invoicePrice: number;     // total invoice cost
-  invoiceDate: string;      // ISO date string
-  totalLitres: number;      // total litres ordered
-  litrePrice: number;       // derived: invoicePrice / totalLitres
-  totalAmount: number;      // same as invoicePrice for compatibility
-  totalCost: number;        // same as invoicePrice for compatibility
-  orderDate: string;
-  expectedDeliveryDate: string;
-  status: OrderStatus;
-}
-
-export interface Expense {
+export interface CustomerPurchase {
   id: string;
   date: string;
-  category: string;
-  description: string;
-  amount: number;
-  paymentMethod: string;
-  approvedBy: string;
-  recordedBy: string;
+  fuelType: FuelType;
+  litres: number;
+  total: number;
+  paymentMethod: PaymentMethod;
 }
 
-// ── Seed Data ──────────────────────────────────────────────────────────────
+// ─── Store State & Actions ────────────────────────────────────────────────────
 
-const today = new Date().toISOString().split('T')[0];
-const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0];
+interface AppState {
+  inventory: FuelInventory[];
+  fuelInventory: FuelInventory[];
+  fuelSales: FuelSale[];
+  sales: FuelSale[];
+  customers: Customer[];
+  customerPurchases: CustomerPurchase[];
+  suppliers: Supplier[];
+  purchaseOrders: PurchaseOrder[];
+  staff: StaffMember[];
+  shiftSchedules: Shift[];
+  shifts: Shift[];
+  expenses: Expense[];
+  invoices: Invoice[];
+  stockLevels: Array<{ fuelType: FuelType; threshold: number; current: number }>;
 
-const seedFuelInventory: FuelInventoryItem[] = [
-  { fuelType: 'Petrol', currentStock: 8500, capacity: 15000, pricePerLiter: 96.72, reorderLevel: 3000, lastUpdated: today },
-  { fuelType: 'Diesel', currentStock: 2100, capacity: 20000, pricePerLiter: 89.62, reorderLevel: 4000, lastUpdated: yesterday },
-  { fuelType: 'Premium', currentStock: 3200, capacity: 10000, pricePerLiter: 104.50, reorderLevel: 2000, lastUpdated: today },
-];
+  updateInventory: (id: string, updates: Partial<FuelInventory>) => void;
+  adjustStock: (id: string, delta: number, reason: string, recordedBy?: string) => void;
+  updateFuelStock: (id: string, delta: number) => void;
+  updateFuelPrice: (id: string, price: number) => void;
 
-const seedStockLevels: StockLevel[] = [
-  { fuelType: 'Petrol', currentLevel: 8500, capacity: 15000, threshold: 3000 },
-  { fuelType: 'Diesel', currentLevel: 2100, capacity: 20000, threshold: 4000 },
-  { fuelType: 'Premium', currentLevel: 3200, capacity: 10000, threshold: 2000 },
-];
+  addFuelSale: (sale: FuelSale) => void;
+  recordSale: (sale: FuelSale) => void;
 
-const seedStockHistory: StockHistoryEntry[] = [
-  { id: 'sh1', date: today, fuelType: 'Petrol', changeAmount: -150, reason: 'Sales', recordedBy: 'System', type: 'sale' },
-  { id: 'sh2', date: yesterday, fuelType: 'Diesel', changeAmount: 5000, reason: 'Delivery from supplier', recordedBy: 'Admin', type: 'purchase' },
-  { id: 'sh3', date: twoDaysAgo, fuelType: 'Premium', changeAmount: -80, reason: 'Sales', recordedBy: 'System', type: 'sale' },
-];
+  addCustomer: (customer: Customer) => void;
+  updateCustomer: (id: string, updates: Partial<Customer>) => void;
+  deleteCustomer: (id: string) => void;
+  redeemPoints: (customerId: string, points: number) => void;
 
-const seedSales: FuelSale[] = [
-  { id: 's1', date: today, fuelType: 'Petrol', quantity: 40, pricePerLiter: 96.72, totalAmount: 3868.80, paymentMethod: 'Cash', pumpNumber: '1', staffName: 'Ravi Kumar', customerName: 'Amit Shah' },
-  { id: 's2', date: today, fuelType: 'Diesel', quantity: 60, pricePerLiter: 89.62, totalAmount: 5377.20, paymentMethod: 'Card', pumpNumber: '2', staffName: 'Priya Singh' },
-  { id: 's3', date: yesterday, fuelType: 'Premium', quantity: 25, pricePerLiter: 104.50, totalAmount: 2612.50, paymentMethod: 'UPI', pumpNumber: '3', staffName: 'Ravi Kumar', customerName: 'Neha Patel' },
-  { id: 's4', date: yesterday, fuelType: 'Petrol', quantity: 35, pricePerLiter: 96.72, totalAmount: 3385.20, paymentMethod: 'Cash', pumpNumber: '1', staffName: 'Suresh Yadav' },
-  { id: 's5', date: twoDaysAgo, fuelType: 'Diesel', quantity: 80, pricePerLiter: 89.62, totalAmount: 7169.60, paymentMethod: 'Credit', pumpNumber: '2', staffName: 'Priya Singh', customerName: 'Rajesh Mehta' },
+  addSupplier: (supplier: Supplier) => void;
+  updateSupplier: (id: string, updates: Partial<Supplier>) => void;
+  deleteSupplier: (id: string) => void;
+
+  addPurchaseOrder: (order: PurchaseOrder) => void;
+  updatePurchaseOrderStatus: (id: string, status: OrderStatus) => void;
+  updateOrderStatus: (id: string, status: OrderStatus) => void;
+
+  addStaff: (member: StaffMember) => void;
+  updateStaff: (id: string, updates: Partial<StaffMember>) => void;
+  deleteStaff: (id: string) => void;
+
+  addShift: (shift: Shift) => void;
+
+  addExpense: (expense: Omit<Expense, 'id'>) => void;
+
+  addInvoice: (invoice: Invoice) => void;
+  updateInvoiceStatus: (id: string, status: InvoiceStatus) => void;
+  toggleInvoiceStatus: (id: string) => void;
+
+  updateThreshold: (fuelType: FuelType, threshold: number) => void;
+}
+
+// ─── Seed Data ────────────────────────────────────────────────────────────────
+
+function makeInventory(base: Omit<FuelInventory, 'pricePerLiter' | 'reorderLevel'> & { reorderLevel?: number }): FuelInventory {
+  return {
+    ...base,
+    reorderLevel: base.reorderLevel ?? Math.round(base.capacity * 0.15),
+    pricePerLiter: base.pricePerLitre,
+  };
+}
+
+function makeSale(base: {
+  id: string; date: string; fuelType: FuelType; litres: number;
+  pricePerLitre: number; total: number; paymentMethod: PaymentMethod;
+  pumpNumber: number; recordedBy: string; customerId?: string; customerName?: string;
+}): FuelSale {
+  return {
+    ...base,
+    quantity: base.litres,
+    totalAmount: base.total,
+    pricePerLiter: base.pricePerLitre,
+    staffName: base.recordedBy,
+  };
+}
+
+function makeCustomer(base: {
+  id: string; name: string; phone: string; email: string;
+  vehicleType: string; vehicleNumber: string; loyaltyPoints: number;
+  totalPurchases: number; registrationDate: string; lastVisit?: string;
+}): Customer {
+  return {
+    ...base,
+    contact: base.phone,
+    totalPurchaseVolume: base.totalPurchases,
+  };
+}
+
+function makeSupplier(base: {
+  id: string; name: string; contact: string; email: string;
+  address: string; fuelTypes: FuelType[]; rating: number; lastDelivery: string;
+}): Supplier {
+  return { ...base, fuelTypesSupplied: base.fuelTypes };
+}
+
+function makePurchaseOrder(base: {
+  id: string; supplierId: string; supplierName: string; fuelType: FuelType;
+  quantity: number; pricePerLitre: number; totalAmount: number;
+  orderDate: string; expectedDelivery: string; status: OrderStatus; invoiceNumber?: string;
+}): PurchaseOrder {
+  return {
+    ...base,
+    totalLitres: base.quantity,
+    litrePrice: base.pricePerLitre,
+    invoicePrice: base.totalAmount,
+    invoiceDate: base.orderDate,
+    expectedDeliveryDate: base.expectedDelivery,
+  };
+}
+
+function makeStaff(base: {
+  id: string; name: string; role: StaffRole; phone: string; email: string;
+  hireDate: string; salary: number; payPeriod: PayPeriod; isActive: boolean;
+}): StaffMember {
+  return {
+    ...base,
+    contact: base.phone,
+    salaryPeriod: base.payPeriod,
+    status: base.isActive ? 'Active' : 'Inactive',
+  };
+}
+
+const seedInventory: FuelInventory[] = [
+  makeInventory({ id: 'inv-1', fuelType: 'Petrol', currentStock: 8500, capacity: 15000, pricePerLitre: 96.72, reorderLevel: 2000, lastUpdated: '2026-03-01' }),
+  makeInventory({ id: 'inv-2', fuelType: 'Diesel', currentStock: 12000, capacity: 20000, pricePerLitre: 89.62, reorderLevel: 3000, lastUpdated: '2026-03-01' }),
+  makeInventory({ id: 'inv-3', fuelType: 'CNG', currentStock: 2200, capacity: 5000, pricePerLitre: 76.00, reorderLevel: 500, lastUpdated: '2026-03-01' }),
+  makeInventory({ id: 'inv-4', fuelType: 'LPG', currentStock: 800, capacity: 3000, pricePerLitre: 55.00, reorderLevel: 300, lastUpdated: '2026-03-01' }),
 ];
 
 const seedCustomers: Customer[] = [
-  { id: 'c1', name: 'Amit Shah', contact: '9876543210', vehicleNumber: 'MH12AB1234', loyaltyPoints: 450, totalPurchases: 28, registrationDate: '2023-01-15', totalPurchaseVolume: 1120, lastVisit: today },
-  { id: 'c2', name: 'Neha Patel', contact: '9876543211', vehicleNumber: 'MH14CD5678', loyaltyPoints: 320, totalPurchases: 19, registrationDate: '2023-03-22', totalPurchaseVolume: 760, lastVisit: yesterday },
-  { id: 'c3', name: 'Rajesh Mehta', contact: '9876543212', vehicleNumber: 'MH01EF9012', loyaltyPoints: 780, totalPurchases: 45, registrationDate: '2022-11-08', totalPurchaseVolume: 2250, lastVisit: twoDaysAgo },
-  { id: 'c4', name: 'Sunita Verma', contact: '9876543213', vehicleNumber: 'MH04GH3456', loyaltyPoints: 120, totalPurchases: 8, registrationDate: '2024-02-14', totalPurchaseVolume: 320, lastVisit: yesterday },
+  makeCustomer({ id: 'cust-1', name: 'Rajesh Kumar', phone: '9876543210', email: 'rajesh@example.com', vehicleType: 'Car', vehicleNumber: 'MH12AB1234', loyaltyPoints: 450, totalPurchases: 28500, registrationDate: '2024-01-15', lastVisit: '2026-03-03' }),
+  makeCustomer({ id: 'cust-2', name: 'Priya Sharma', phone: '9123456789', email: 'priya@example.com', vehicleType: 'Bike', vehicleNumber: 'MH14CD5678', loyaltyPoints: 120, totalPurchases: 8200, registrationDate: '2024-03-22', lastVisit: '2026-03-02' }),
+  makeCustomer({ id: 'cust-3', name: 'Amit Patel', phone: '9988776655', email: 'amit@example.com', vehicleType: 'Truck', vehicleNumber: 'GJ01EF9012', loyaltyPoints: 890, totalPurchases: 65000, registrationDate: '2023-11-08', lastVisit: '2026-03-01' }),
 ];
 
-const seedCustomerPurchases: Record<string, CustomerPurchase[]> = {
-  c1: [
-    { id: 'cp1', date: today, fuelType: 'Petrol', quantity: 40, amount: 3868.80, pointsEarned: 40 },
-    { id: 'cp2', date: yesterday, fuelType: 'Petrol', quantity: 35, amount: 3385.20, pointsEarned: 35 },
-  ],
-  c2: [
-    { id: 'cp3', date: yesterday, fuelType: 'Premium', quantity: 25, amount: 2612.50, pointsEarned: 25 },
-  ],
-  c3: [
-    { id: 'cp4', date: twoDaysAgo, fuelType: 'Diesel', quantity: 80, amount: 7169.60, pointsEarned: 80 },
-  ],
-};
+const seedSuppliers: Supplier[] = [
+  makeSupplier({ id: 'sup-1', name: 'IndianOil Corporation', contact: '9000011111', email: 'supply@iocl.com', address: 'Mumbai, Maharashtra', fuelTypes: ['Petrol', 'Diesel'], rating: 4.8, lastDelivery: '2026-02-28' }),
+  makeSupplier({ id: 'sup-2', name: 'Bharat Petroleum', contact: '9000022222', email: 'supply@bpcl.com', address: 'Pune, Maharashtra', fuelTypes: ['Petrol', 'Diesel', 'LPG'], rating: 4.6, lastDelivery: '2026-02-25' }),
+  makeSupplier({ id: 'sup-3', name: 'Hindustan Petroleum', contact: '9000033333', email: 'supply@hpcl.com', address: 'Nashik, Maharashtra', fuelTypes: ['CNG', 'LPG'], rating: 4.5, lastDelivery: '2026-02-20' }),
+];
 
-const seedStaff: Staff[] = [
-  { id: 'st1', name: 'Ravi Kumar', role: 'Pump Operator', contact: '9876501234', email: 'ravi@fuelstation.com', shift: 'Morning', salary: 18000, salaryPeriod: 'monthly', joinDate: '2022-06-01', hireDate: '2022-06-01', status: 'Active' },
-  { id: 'st2', name: 'Priya Singh', role: 'Cashier', contact: '9876501235', email: 'priya@fuelstation.com', shift: 'Afternoon', salary: 20000, salaryPeriod: 'monthly', joinDate: '2021-09-15', hireDate: '2021-09-15', status: 'Active' },
-  { id: 'st3', name: 'Suresh Yadav', role: 'Pump Operator', contact: '9876501236', email: 'suresh@fuelstation.com', shift: 'Night', salary: 18000, salaryPeriod: 'monthly', joinDate: '2023-01-10', hireDate: '2023-01-10', status: 'Active' },
-  { id: 'st4', name: 'Meena Joshi', role: 'Manager', contact: '9876501237', email: 'meena@fuelstation.com', shift: 'Morning', salary: 35000, salaryPeriod: 'monthly', joinDate: '2020-03-20', hireDate: '2020-03-20', status: 'Active' },
-  { id: 'st5', name: 'Arun Sharma', role: 'Pump Operator', contact: '9876501238', email: 'arun@fuelstation.com', shift: 'Afternoon', salary: 18000, salaryPeriod: 'monthly', joinDate: '2023-07-05', hireDate: '2023-07-05', status: 'Inactive' },
+const seedPurchaseOrders: PurchaseOrder[] = [
+  makePurchaseOrder({ id: 'po-1', supplierId: 'sup-1', supplierName: 'IndianOil Corporation', fuelType: 'Petrol', quantity: 5000, pricePerLitre: 94.00, totalAmount: 470000, orderDate: '2026-02-25', expectedDelivery: '2026-02-28', status: 'Delivered', invoiceNumber: 'INV-2026-001' }),
+  makePurchaseOrder({ id: 'po-2', supplierId: 'sup-2', supplierName: 'Bharat Petroleum', fuelType: 'Diesel', quantity: 8000, pricePerLitre: 87.00, totalAmount: 696000, orderDate: '2026-02-27', expectedDelivery: '2026-03-02', status: 'Pending' }),
+  makePurchaseOrder({ id: 'po-3', supplierId: 'sup-3', supplierName: 'Hindustan Petroleum', fuelType: 'CNG', quantity: 2000, pricePerLitre: 74.00, totalAmount: 148000, orderDate: '2026-03-01', expectedDelivery: '2026-03-05', status: 'Pending' }),
+];
+
+const seedStaff: StaffMember[] = [
+  makeStaff({ id: 'staff-1', name: 'Suresh Yadav', role: 'Manager', phone: '9111122222', email: 'suresh@station.com', hireDate: '2022-01-10', salary: 35000, payPeriod: 'monthly', isActive: true }),
+  makeStaff({ id: 'staff-2', name: 'Mohan Verma', role: 'Attendant', phone: '9333344444', email: 'mohan@station.com', hireDate: '2023-06-15', salary: 18000, payPeriod: 'monthly', isActive: true }),
+  makeStaff({ id: 'staff-3', name: 'Kavita Singh', role: 'Cashier', phone: '9555566666', email: 'kavita@station.com', hireDate: '2023-09-01', salary: 22000, payPeriod: 'monthly', isActive: true }),
+  makeStaff({ id: 'staff-4', name: 'Ravi Gupta', role: 'Technician', phone: '9777788888', email: 'ravi@station.com', hireDate: '2024-02-20', salary: 28000, payPeriod: 'monthly', isActive: true }),
 ];
 
 const seedShifts: Shift[] = [
-  { id: 'sh1', staffId: 'st1', staffName: 'Ravi Kumar', date: today, startTime: '06:00', endTime: '14:00', pumpNumber: 1, status: 'Active' },
-  { id: 'sh2', staffId: 'st2', staffName: 'Priya Singh', date: today, startTime: '14:00', endTime: '22:00', pumpNumber: 2, status: 'Scheduled' },
-  { id: 'sh3', staffId: 'st3', staffName: 'Suresh Yadav', date: today, startTime: '22:00', endTime: '06:00', pumpNumber: 3, status: 'Scheduled' },
+  { id: 'shift-1', staffId: 'staff-2', staffName: 'Mohan Verma', date: '2026-03-03', startTime: '06:00', endTime: '14:00', pumpNumber: 1, status: 'Scheduled' },
+  { id: 'shift-2', staffId: 'staff-3', staffName: 'Kavita Singh', date: '2026-03-03', startTime: '14:00', endTime: '22:00', pumpNumber: 2, status: 'Scheduled' },
+  { id: 'shift-3', staffId: 'staff-2', staffName: 'Mohan Verma', date: '2026-03-02', startTime: '06:00', endTime: '14:00', pumpNumber: 1, status: 'Completed' },
 ];
 
-const seedShiftSchedules: ShiftSchedule[] = [
-  { id: 'ss1', staffId: 'st1', staffName: 'Ravi Kumar', date: today, shift: 'Morning', pumpAssigned: 'Pump 1', status: 'Scheduled' },
-  { id: 'ss2', staffId: 'st2', staffName: 'Priya Singh', date: today, shift: 'Afternoon', pumpAssigned: 'Pump 2', status: 'Scheduled' },
-  { id: 'ss3', staffId: 'st3', staffName: 'Suresh Yadav', date: yesterday, shift: 'Night', pumpAssigned: 'Pump 3', status: 'Completed' },
+const seedExpenses: Expense[] = [
+  { id: 'exp-1', date: '2026-03-01', category: 'Maintenance', description: 'Pump maintenance and servicing', amount: 15000, paymentMethod: 'Cash', approvedBy: 'Suresh Yadav', recordedBy: 'Suresh Yadav' },
+  { id: 'exp-2', date: '2026-02-28', category: 'Utilities', description: 'Electricity bill February', amount: 8500, paymentMethod: 'UPI', approvedBy: 'Suresh Yadav', recordedBy: 'Suresh Yadav' },
+  { id: 'exp-3', date: '2026-02-25', category: 'Equipment', description: 'New nozzle replacement', amount: 3200, paymentMethod: 'Card', approvedBy: 'Suresh Yadav', recordedBy: 'Suresh Yadav' },
+];
+
+const seedSales: FuelSale[] = [
+  makeSale({ id: 'sale-1', date: '2026-03-03', fuelType: 'Petrol', litres: 40, pricePerLitre: 96.72, total: 3868.80, paymentMethod: 'UPI', customerId: 'cust-1', customerName: 'Rajesh Kumar', pumpNumber: 1, recordedBy: 'Mohan Verma' }),
+  makeSale({ id: 'sale-2', date: '2026-03-03', fuelType: 'Diesel', litres: 100, pricePerLitre: 89.62, total: 8962.00, paymentMethod: 'Cash', pumpNumber: 2, recordedBy: 'Kavita Singh' }),
+  makeSale({ id: 'sale-3', date: '2026-03-02', fuelType: 'Petrol', litres: 25, pricePerLitre: 96.72, total: 2418.00, paymentMethod: 'Card', customerId: 'cust-2', customerName: 'Priya Sharma', pumpNumber: 1, recordedBy: 'Mohan Verma' }),
+  makeSale({ id: 'sale-4', date: '2026-03-02', fuelType: 'CNG', litres: 30, pricePerLitre: 76.00, total: 2280.00, paymentMethod: 'UPI', pumpNumber: 3, recordedBy: 'Mohan Verma' }),
+  makeSale({ id: 'sale-5', date: '2026-03-01', fuelType: 'Diesel', litres: 200, pricePerLitre: 89.62, total: 17924.00, paymentMethod: 'Credit', customerId: 'cust-3', customerName: 'Amit Patel', pumpNumber: 2, recordedBy: 'Kavita Singh' }),
 ];
 
 const seedInvoices: Invoice[] = [
   {
-    id: 'inv1', invoiceNumber: 'INV-2024-001', customerId: 'c1', customerName: 'Amit Shah',
-    saleId: 's1', fuelType: 'Petrol', quantity: 40, pricePerLiter: 96.72,
-    subtotal: 3868.80, tax: 696.38, total: 4565.18, totalAmount: 4565.18,
-    date: today, dueDate: today, paymentMethod: 'Cash', status: 'Paid',
+    id: 'inv-bill-1', invoiceNumber: 'INV-2026-B001',
+    customerId: 'cust-3', customerName: 'Amit Patel',
+    date: '2026-03-01', dueDate: '2026-03-15',
+    items: [{ description: 'Diesel - 200L', quantity: 200, unitPrice: 89.62, total: 17924 }],
+    subtotal: 17924, tax: 1792.4, total: 19716.4, totalAmount: 19716.4,
+    fuelType: 'Diesel', quantity: 200, pricePerLiter: 89.62, paymentMethod: 'Credit',
+    status: 'Pending',
   },
   {
-    id: 'inv2', invoiceNumber: 'INV-2024-002', customerName: 'Walk-in Customer',
-    saleId: 's2', fuelType: 'Diesel', quantity: 60, pricePerLiter: 89.62,
-    subtotal: 5377.20, tax: 967.90, total: 6345.10, totalAmount: 6345.10,
-    date: today, dueDate: today, paymentMethod: 'Card', status: 'Paid',
+    id: 'inv-bill-2', invoiceNumber: 'INV-2026-B002',
+    customerId: 'cust-1', customerName: 'Rajesh Kumar',
+    date: '2026-02-20', dueDate: '2026-02-28',
+    items: [{ description: 'Petrol - 50L', quantity: 50, unitPrice: 96.72, total: 4836 }],
+    subtotal: 4836, tax: 483.6, total: 5319.6, totalAmount: 5319.6,
+    fuelType: 'Petrol', quantity: 50, pricePerLiter: 96.72, paymentMethod: 'UPI',
+    status: 'Overdue',
   },
   {
-    id: 'inv3', invoiceNumber: 'INV-2024-003', customerId: 'c2', customerName: 'Neha Patel',
-    saleId: 's3', fuelType: 'Premium', quantity: 25, pricePerLiter: 104.50,
-    subtotal: 2612.50, tax: 470.25, total: 3082.75, totalAmount: 3082.75,
-    date: yesterday, dueDate: yesterday, paymentMethod: 'UPI', status: 'Unpaid',
-  },
-  {
-    id: 'inv4', invoiceNumber: 'INV-2024-004', customerId: 'c3', customerName: 'Rajesh Mehta',
-    saleId: 's5', fuelType: 'Diesel', quantity: 80, pricePerLiter: 89.62,
-    subtotal: 7169.60, tax: 1290.53, total: 8460.13, totalAmount: 8460.13,
-    date: twoDaysAgo, dueDate: twoDaysAgo, paymentMethod: 'Credit', status: 'Overdue',
+    id: 'inv-bill-3', invoiceNumber: 'INV-2026-B003',
+    customerId: 'cust-2', customerName: 'Priya Sharma',
+    date: '2026-02-15', dueDate: '2026-02-22',
+    items: [{ description: 'Petrol - 25L', quantity: 25, unitPrice: 96.72, total: 2418 }],
+    subtotal: 2418, tax: 241.8, total: 2659.8, totalAmount: 2659.8,
+    fuelType: 'Petrol', quantity: 25, pricePerLiter: 96.72, paymentMethod: 'Card',
+    status: 'Paid',
   },
 ];
 
-const seedSuppliers: Supplier[] = [
-  { id: 'sup1', name: 'IndianOil Corporation', contact: '9800001111', email: 'supply@iocl.com', address: 'Mumbai, Maharashtra', fuelTypesSupplied: ['Petrol', 'Diesel'], rating: 4.8, lastDelivery: yesterday },
-  { id: 'sup2', name: 'Bharat Petroleum', contact: '9800002222', email: 'supply@bpcl.com', address: 'Pune, Maharashtra', fuelTypesSupplied: ['Petrol', 'Diesel', 'Premium'], rating: 4.6, lastDelivery: twoDaysAgo },
-  { id: 'sup3', name: 'Hindustan Petroleum', contact: '9800003333', email: 'supply@hpcl.com', address: 'Nashik, Maharashtra', fuelTypesSupplied: ['Diesel', 'Premium'], rating: 4.5, lastDelivery: today },
+const seedCustomerPurchases: CustomerPurchase[] = [
+  { id: 'cp-1', date: '2026-03-03', fuelType: 'Petrol', litres: 40, total: 3868.80, paymentMethod: 'UPI' },
+  { id: 'cp-2', date: '2026-03-02', fuelType: 'Petrol', litres: 25, total: 2418.00, paymentMethod: 'Card' },
+  { id: 'cp-3', date: '2026-03-01', fuelType: 'Diesel', litres: 200, total: 17924.00, paymentMethod: 'Credit' },
 ];
 
-const seedPurchaseOrders: PurchaseOrder[] = [
-  {
-    id: 'po1', supplierId: 'sup1', supplierName: 'IndianOil Corporation', fuelType: 'Petrol',
-    quantityOrdered: 10000, invoiceNumber: 'IOCL-INV-2024-001',
-    invoicePrice: 967200, invoiceDate: yesterday,
-    totalLitres: 10000, litrePrice: 96.72,
-    totalAmount: 967200, totalCost: 967200,
-    orderDate: twoDaysAgo, expectedDeliveryDate: today, status: 'Delivered',
-  },
-  {
-    id: 'po2', supplierId: 'sup2', supplierName: 'Bharat Petroleum', fuelType: 'Diesel',
-    quantityOrdered: 15000, invoiceNumber: 'BPCL-INV-2024-042',
-    invoicePrice: 1344300, invoiceDate: today,
-    totalLitres: 15000, litrePrice: 89.62,
-    totalAmount: 1344300, totalCost: 1344300,
-    orderDate: yesterday, expectedDeliveryDate: today, status: 'Pending',
-  },
-  {
-    id: 'po3', supplierId: 'sup3', supplierName: 'Hindustan Petroleum', fuelType: 'Premium',
-    quantityOrdered: 5000,
-    invoicePrice: 522500, invoiceDate: twoDaysAgo,
-    totalLitres: 5000, litrePrice: 104.50,
-    totalAmount: 522500, totalCost: 522500,
-    orderDate: twoDaysAgo, expectedDeliveryDate: yesterday, status: 'Delivered',
-  },
+const seedStockLevels = [
+  { fuelType: 'Petrol' as FuelType, threshold: 2000, current: 8500 },
+  { fuelType: 'Diesel' as FuelType, threshold: 3000, current: 12000 },
+  { fuelType: 'CNG' as FuelType, threshold: 500, current: 2200 },
+  { fuelType: 'LPG' as FuelType, threshold: 300, current: 800 },
 ];
 
-const seedExpenses: Expense[] = [
-  { id: 'exp1', date: today, category: 'Utilities', description: 'Electricity Bill', amount: 12500, paymentMethod: 'Bank Transfer', approvedBy: 'Meena Joshi', recordedBy: 'Meena Joshi' },
-  { id: 'exp2', date: yesterday, category: 'Maintenance', description: 'Pump Maintenance', amount: 8000, paymentMethod: 'Cash', approvedBy: 'Meena Joshi', recordedBy: 'Ravi Kumar' },
-  { id: 'exp3', date: twoDaysAgo, category: 'Salaries', description: 'Staff Salaries - March', amount: 109000, paymentMethod: 'Bank Transfer', approvedBy: 'Meena Joshi', recordedBy: 'Meena Joshi' },
-  { id: 'exp4', date: twoDaysAgo, category: 'Other', description: 'Office Supplies', amount: 2500, paymentMethod: 'Cash', approvedBy: 'Meena Joshi', recordedBy: 'Priya Singh' },
-];
+// ─── Store ────────────────────────────────────────────────────────────────────
 
-// ── Store Interface ────────────────────────────────────────────────────────
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      inventory: seedInventory,
+      fuelInventory: seedInventory,
+      fuelSales: seedSales,
+      sales: seedSales,
+      customers: seedCustomers,
+      customerPurchases: seedCustomerPurchases,
+      suppliers: seedSuppliers,
+      purchaseOrders: seedPurchaseOrders,
+      staff: seedStaff,
+      shifts: seedShifts,
+      shiftSchedules: seedShifts,
+      expenses: seedExpenses,
+      invoices: seedInvoices,
+      stockLevels: seedStockLevels,
 
-export interface AppState {
-  // Data
-  fuelInventory: FuelInventoryItem[];
-  stockLevels: StockLevel[];
-  stockHistory: StockHistoryEntry[];
-  /** Primary sales collection — also accessible as fuelSales for compatibility */
-  sales: FuelSale[];
-  /** Alias for sales — used by Dashboard, FuelSales, Reports pages */
-  fuelSales: FuelSale[];
-  customers: Customer[];
-  customerPurchases: Record<string, CustomerPurchase[]>;
-  staff: Staff[];
-  shifts: Shift[];
-  shiftSchedules: ShiftSchedule[];
-  invoices: Invoice[];
-  suppliers: Supplier[];
-  purchaseOrders: PurchaseOrder[];
-  expenses: Expense[];
+      updateInventory: (id, updates) =>
+        set((state) => {
+          const inventory = state.inventory.map((item) =>
+            item.id === id ? { ...item, ...updates, pricePerLiter: updates.pricePerLitre ?? item.pricePerLitre } : item
+          );
+          return { inventory, fuelInventory: inventory };
+        }),
 
-  // Actions
-  addSale: (sale: Omit<FuelSale, 'id'>) => void;
-  /** Alias for addSale — used by RecordSaleModal */
-  addFuelSale: (sale: FuelSale) => void;
-  addCustomer: (customer: Omit<Customer, 'id'>) => void;
-  updateCustomer: (id: string, updates: Partial<Customer>) => void;
-  deleteCustomer: (id: string) => void;
-  addStaff: (staff: Omit<Staff, 'id'>) => void;
-  updateStaff: (id: string, updates: Partial<Staff>) => void;
-  deleteStaff: (id: string) => void;
-  addShift: (shift: Omit<Shift, 'id'>) => void;
-  addSupplier: (supplier: Omit<Supplier, 'id'>) => void;
-  updateSupplier: (id: string, updates: Partial<Supplier>) => void;
-  deleteSupplier: (id: string) => void;
-  addPurchaseOrder: (order: Omit<PurchaseOrder, 'id'>) => void;
-  updateOrderStatus: (id: string, status: OrderStatus) => void;
-  addExpense: (expense: Omit<Expense, 'id'>) => void;
-  toggleInvoiceStatus: (id: string) => void;
-  updateInvoiceStatus: (id: string, status: InvoiceStatus) => void;
-  redeemPoints: (customerId: string, points: number) => void;
-  adjustStock: (fuelType: FuelType, amount: number, reason: string, recordedBy?: string) => void;
-  updateThreshold: (fuelType: FuelType, threshold: number) => void;
-  updateFuelStock: (fuelType: string, newStock: number) => void;
-  updateFuelPrice: (fuelType: string, newPrice: number) => void;
-}
+      adjustStock: (id, delta, _reason, _recordedBy) =>
+        set((state) => {
+          const inventory = state.inventory.map((item) =>
+            item.id === id
+              ? { ...item, currentStock: Math.max(0, item.currentStock + delta), lastUpdated: new Date().toISOString().split('T')[0] }
+              : item
+          );
+          return { inventory, fuelInventory: inventory };
+        }),
 
-// ── Store ──────────────────────────────────────────────────────────────────
+      updateFuelStock: (id, delta) =>
+        set((state) => {
+          const inventory = state.inventory.map((item) =>
+            item.id === id
+              ? { ...item, currentStock: Math.max(0, item.currentStock + delta), lastUpdated: new Date().toISOString().split('T')[0] }
+              : item
+          );
+          return { inventory, fuelInventory: inventory };
+        }),
 
-export const useAppStore = create<AppState>((set) => ({
-  fuelInventory: seedFuelInventory,
-  stockLevels: seedStockLevels,
-  stockHistory: seedStockHistory,
-  sales: seedSales,
-  fuelSales: seedSales,
-  customers: seedCustomers,
-  customerPurchases: seedCustomerPurchases,
-  staff: seedStaff,
-  shifts: seedShifts,
-  shiftSchedules: seedShiftSchedules,
-  invoices: seedInvoices,
-  suppliers: seedSuppliers,
-  purchaseOrders: seedPurchaseOrders,
-  expenses: seedExpenses,
+      updateFuelPrice: (id, price) =>
+        set((state) => {
+          const inventory = state.inventory.map((item) =>
+            item.id === id ? { ...item, pricePerLitre: price, pricePerLiter: price } : item
+          );
+          return { inventory, fuelInventory: inventory };
+        }),
 
-  addSale: (sale) => set((state) => {
-    const newSales = [{ ...sale, id: `s${Date.now()}` }, ...state.sales];
-    return { sales: newSales, fuelSales: newSales };
-  }),
+      addFuelSale: (sale) =>
+        set((state) => ({
+          fuelSales: [sale, ...state.fuelSales],
+          sales: [sale, ...state.sales],
+        })),
 
-  addFuelSale: (sale) => set((state) => {
-    const newSales = [sale, ...state.sales];
-    return { sales: newSales, fuelSales: newSales };
-  }),
+      recordSale: (sale) =>
+        set((state) => ({
+          fuelSales: [sale, ...state.fuelSales],
+          sales: [sale, ...state.sales],
+        })),
 
-  addCustomer: (customer) => set((state) => ({
-    customers: [{ ...customer, id: `c${Date.now()}` }, ...state.customers],
-  })),
+      addCustomer: (customer) =>
+        set((state) => ({ customers: [...state.customers, customer] })),
 
-  updateCustomer: (id, updates) => set((state) => ({
-    customers: state.customers.map(c => c.id === id ? { ...c, ...updates } : c),
-  })),
+      updateCustomer: (id, updates) =>
+        set((state) => ({
+          customers: state.customers.map((c) => c.id === id ? { ...c, ...updates } : c),
+        })),
 
-  deleteCustomer: (id) => set((state) => ({
-    customers: state.customers.filter(c => c.id !== id),
-  })),
+      deleteCustomer: (id) =>
+        set((state) => ({ customers: state.customers.filter((c) => c.id !== id) })),
 
-  addStaff: (staff) => set((state) => ({
-    staff: [{ ...staff, id: `st${Date.now()}` }, ...state.staff],
-  })),
+      redeemPoints: (customerId, points) =>
+        set((state) => ({
+          customers: state.customers.map((c) =>
+            c.id === customerId ? { ...c, loyaltyPoints: Math.max(0, c.loyaltyPoints - points) } : c
+          ),
+        })),
 
-  updateStaff: (id, updates) => set((state) => ({
-    staff: state.staff.map(s => s.id === id ? { ...s, ...updates } : s),
-  })),
+      addSupplier: (supplier) =>
+        set((state) => ({ suppliers: [...state.suppliers, supplier] })),
 
-  deleteStaff: (id) => set((state) => ({
-    staff: state.staff.filter(s => s.id !== id),
-  })),
+      updateSupplier: (id, updates) =>
+        set((state) => ({
+          suppliers: state.suppliers.map((s) => {
+            if (s.id !== id) return s;
+            const merged = { ...s, ...updates };
+            if (updates.fuelTypes) merged.fuelTypesSupplied = updates.fuelTypes;
+            if (updates.fuelTypesSupplied) merged.fuelTypes = updates.fuelTypesSupplied;
+            return merged;
+          }),
+        })),
 
-  addShift: (shift) => set((state) => ({
-    shifts: [{ ...shift, id: `shift${Date.now()}` }, ...state.shifts],
-  })),
+      deleteSupplier: (id) =>
+        set((state) => ({ suppliers: state.suppliers.filter((s) => s.id !== id) })),
 
-  addSupplier: (supplier) => set((state) => ({
-    suppliers: [{ ...supplier, id: `sup${Date.now()}` }, ...state.suppliers],
-  })),
+      addPurchaseOrder: (order) =>
+        set((state) => ({ purchaseOrders: [...state.purchaseOrders, order] })),
 
-  updateSupplier: (id, updates) => set((state) => ({
-    suppliers: state.suppliers.map(s => s.id === id ? { ...s, ...updates } : s),
-  })),
+      updatePurchaseOrderStatus: (id, status) =>
+        set((state) => ({
+          purchaseOrders: state.purchaseOrders.map((o) => o.id === id ? { ...o, status } : o),
+        })),
 
-  deleteSupplier: (id) => set((state) => ({
-    suppliers: state.suppliers.filter(s => s.id !== id),
-  })),
+      updateOrderStatus: (id, status) =>
+        set((state) => ({
+          purchaseOrders: state.purchaseOrders.map((o) => o.id === id ? { ...o, status } : o),
+        })),
 
-  addPurchaseOrder: (order) => set((state) => ({
-    purchaseOrders: [{ ...order, id: `po${Date.now()}` }, ...state.purchaseOrders],
-  })),
+      addStaff: (member) =>
+        set((state) => ({ staff: [...state.staff, member] })),
 
-  updateOrderStatus: (id, status) => set((state) => ({
-    purchaseOrders: state.purchaseOrders.map(o => o.id === id ? { ...o, status } : o),
-  })),
+      updateStaff: (id, updates) =>
+        set((state) => ({
+          staff: state.staff.map((s) => s.id === id ? { ...s, ...updates } : s),
+        })),
 
-  addExpense: (expense) => set((state) => ({
-    expenses: [{ ...expense, id: `exp${Date.now()}` }, ...state.expenses],
-  })),
+      deleteStaff: (id) =>
+        set((state) => ({ staff: state.staff.filter((s) => s.id !== id) })),
 
-  toggleInvoiceStatus: (id) => set((state) => ({
-    invoices: state.invoices.map(inv =>
-      inv.id === id ? { ...inv, status: inv.status === 'Paid' ? 'Unpaid' : 'Paid' } : inv
-    ),
-  })),
+      addShift: (shift) =>
+        set((state) => ({
+          shifts: [...state.shifts, shift],
+          shiftSchedules: [...state.shiftSchedules, shift],
+        })),
 
-  updateInvoiceStatus: (id, status) => set((state) => ({
-    invoices: state.invoices.map(inv =>
-      inv.id === id ? { ...inv, status } : inv
-    ),
-  })),
+      addExpense: (expense) =>
+        set((state) => ({
+          expenses: [
+            ...state.expenses,
+            {
+              ...expense,
+              id: `exp-${Date.now()}`,
+              recordedBy: expense.recordedBy ?? expense.approvedBy,
+            },
+          ],
+        })),
 
-  redeemPoints: (customerId, points) => set((state) => ({
-    customers: state.customers.map(c =>
-      c.id === customerId ? { ...c, loyaltyPoints: Math.max(0, c.loyaltyPoints - points) } : c
-    ),
-  })),
+      addInvoice: (invoice) =>
+        set((state) => ({
+          invoices: [...state.invoices, { ...invoice, totalAmount: invoice.totalAmount ?? invoice.total }],
+        })),
 
-  adjustStock: (fuelType, amount, reason, recordedBy = 'Admin') => set((state) => {
-    const entry: StockHistoryEntry = {
-      id: `sh${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
-      fuelType,
-      changeAmount: amount,
-      reason,
-      recordedBy,
-      type: amount > 0 ? 'purchase' : 'adjustment',
-    };
-    return {
-      stockLevels: state.stockLevels.map(sl =>
-        sl.fuelType === fuelType
-          ? { ...sl, currentLevel: Math.max(0, sl.currentLevel + amount) }
-          : sl
-      ),
-      stockHistory: [entry, ...state.stockHistory],
-    };
-  }),
+      updateInvoiceStatus: (id, status) =>
+        set((state) => ({
+          invoices: state.invoices.map((inv) => inv.id === id ? { ...inv, status } : inv),
+        })),
 
-  updateThreshold: (fuelType, threshold) => set((state) => ({
-    stockLevels: state.stockLevels.map(sl =>
-      sl.fuelType === fuelType ? { ...sl, threshold } : sl
-    ),
-  })),
+      toggleInvoiceStatus: (id) =>
+        set((state) => ({
+          invoices: state.invoices.map((inv) => {
+            if (inv.id !== id) return inv;
+            const next: InvoiceStatus =
+              inv.status === 'Pending' ? 'Paid'
+              : inv.status === 'Overdue' ? 'Paid'
+              : 'Pending';
+            return { ...inv, status: next };
+          }),
+        })),
 
-  updateFuelStock: (fuelType, newStock) => set((state) => ({
-    fuelInventory: state.fuelInventory.map(item =>
-      item.fuelType === fuelType ? { ...item, currentStock: newStock, lastUpdated: new Date().toISOString().split('T')[0] } : item
-    ),
-  })),
-
-  updateFuelPrice: (fuelType, newPrice) => set((state) => ({
-    fuelInventory: state.fuelInventory.map(item =>
-      item.fuelType === fuelType ? { ...item, pricePerLiter: newPrice, lastUpdated: new Date().toISOString().split('T')[0] } : item
-    ),
-  })),
-}));
+      updateThreshold: (fuelType, threshold) =>
+        set((state) => ({
+          stockLevels: state.stockLevels.map((sl) =>
+            sl.fuelType === fuelType ? { ...sl, threshold } : sl
+          ),
+        })),
+    }),
+    {
+      name: 'fuel-station-store',
+    }
+  )
+);
