@@ -24,26 +24,6 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const PaymentMethod = IDL.Variant({
-  'mobileMoney' : IDL.Null,
-  'creditCard' : IDL.Null,
-  'cash' : IDL.Null,
-});
-export const FuelType = IDL.Variant({
-  'premium' : IDL.Null,
-  'petrol' : IDL.Null,
-  'diesel' : IDL.Null,
-});
-export const FuelSaleRecord = IDL.Record({
-  'paymentMethod' : PaymentMethod,
-  'pricePerLitre' : IDL.Nat,
-  'vehiclePlate' : IDL.Text,
-  'attendantName' : IDL.Text,
-  'quantityLitres' : IDL.Nat,
-  'fuelType' : FuelType,
-  'totalAmount' : IDL.Nat,
-  'timestamp' : IDL.Int,
-});
 export const PayPeriod = IDL.Variant({
   'annual' : IDL.Null,
   'monthly' : IDL.Null,
@@ -88,8 +68,6 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'createSaleRecord' : IDL.Func([FuelSaleRecord], [], []),
-  'getAllSaleRecords' : IDL.Func([], [IDL.Vec(FuelSaleRecord)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getUserProfile' : IDL.Func(
@@ -119,26 +97,6 @@ export const idlFactory = ({ IDL }) => {
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
-  });
-  const PaymentMethod = IDL.Variant({
-    'mobileMoney' : IDL.Null,
-    'creditCard' : IDL.Null,
-    'cash' : IDL.Null,
-  });
-  const FuelType = IDL.Variant({
-    'premium' : IDL.Null,
-    'petrol' : IDL.Null,
-    'diesel' : IDL.Null,
-  });
-  const FuelSaleRecord = IDL.Record({
-    'paymentMethod' : PaymentMethod,
-    'pricePerLitre' : IDL.Nat,
-    'vehiclePlate' : IDL.Text,
-    'attendantName' : IDL.Text,
-    'quantityLitres' : IDL.Nat,
-    'fuelType' : FuelType,
-    'totalAmount' : IDL.Nat,
-    'timestamp' : IDL.Int,
   });
   const PayPeriod = IDL.Variant({ 'annual' : IDL.Null, 'monthly' : IDL.Null });
   const Salary = IDL.Record({ 'payPeriod' : PayPeriod, 'amount' : IDL.Nat });
@@ -178,8 +136,6 @@ export const idlFactory = ({ IDL }) => {
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'createSaleRecord' : IDL.Func([FuelSaleRecord], [], []),
-    'getAllSaleRecords' : IDL.Func([], [IDL.Vec(FuelSaleRecord)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getUserProfile' : IDL.Func(

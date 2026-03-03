@@ -1,83 +1,24 @@
 {
   "schemaVersion": "1.0.0",
   "projectStateVersion": 3,
-  "summary": "Fuel Station Sales Tracker web app. Allows staff to log fuel sales with fields: date/time, fuel type, quantity, price per litre, total amount, vehicle plate number, attendant name, payment method. Includes full sales history (never wiped), reporting/summaries (daily totals, sales by fuel type, export), and no login required.",
-  "architectural_notes": [
-    "Records must never be overwritten with an empty array — always preserve and merge existing records on save/submit actions."
+  "summary": "Project has a bug where form reset on page load is also clearing saved records from the database. Only form fields should reset, not stored data.",
+  "architectural_notes": [],
+  "known_issues": [
+    "Form reset on page load is incorrectly clearing saved records from the database; only form fields should be reset, not stored data."
   ],
-  "known_issues": [],
-  "isFixRequest": false,
-  "imageRequirements": "## Required Images\n- Fuel station banner illustration with a dark night-time atmosphere, amber-lit fuel pumps and a canopy, wide landscape format (banner-hero.dim_1200x300.png)",
+  "isFixRequest": true,
   "existing_features": [
     {
-      "id": "feature-build-a-fuel-sales-log-page-where-any-user-no-login-required-can-fill-in-and-submit-a-form-to-record-a-new-fuel-sale-the-form-must-include-date-time-picker-fuel-type-selector-quantity-litres-price-per-litre-auto-calculated-total-amount-vehicle-plate-number-attendant-name-and-payment-method-on-submit-the-record-is-saved-to-the-backend-and-immediately-reflected-in-the-history-list",
-      "title": "Build a fuel sales log page where any user (no login required) can fill in and submit a form to record a new fuel sale. The form must include: date/time picker, fuel type selector, quantity (litres), price per litre, auto-calculated total amount, vehicle plate number, attendant name, and payment method. On submit the record is saved to the backend and immediately reflected in the history list.",
-      "reqIds": [
-        "REQ-2"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-display-a-full-sales-history-table-showing-all-recorded-fuel-sales-sorted-by-most-recent-first-the-table-must-show-all-fields-date-time-fuel-type-quantity-price-per-litre-total-amount-vehicle-plate-number-attendant-name-payment-method-history-must-always-reflect-persisted-backend-data-and-must-never-be-wiped-or-reset-on-page-load-or-any-action",
-      "title": "Display a full sales history table showing all recorded fuel sales, sorted by most recent first. The table must show all fields (date/time, fuel type, quantity, price per litre, total amount, vehicle plate number, attendant name, payment method). History must always reflect persisted backend data and must never be wiped or reset on page load or any action.",
-      "reqIds": [
-        "REQ-3"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-add-a-reporting-and-summary-section-with-1-daily-totals-showing-total-litres-sold-and-total-revenue-for-each-day-2-a-breakdown-of-sales-by-fuel-type-showing-volume-and-revenue-per-type-and-3-an-export-function-that-downloads-the-full-sales-history-as-a-csv-file",
-      "title": "Add a reporting and summary section with: (1) daily totals showing total litres sold and total revenue for each day, (2) a breakdown of sales by fuel type showing volume and revenue per type, and (3) an export function that downloads the full sales history as a CSV file.",
-      "reqIds": [
-        "REQ-4"
-      ],
-      "version": 1
-    },
-    {
-      "id": "feature-apply-a-consistent-industrial-fuel-station-visual-theme-across-the-entire-app-dark-navy-or-charcoal-background-amber-or-orange-accent-colors-bold-sans-serif-typography-clean-card-based-layout-for-data-and-summaries-the-theme-must-be-applied-consistently-to-all-pages-forms-tables-and-navigation",
-      "title": "Apply a consistent industrial / fuel-station visual theme across the entire app: dark navy or charcoal background, amber or orange accent colors, bold sans-serif typography, clean card-based layout for data and summaries. The theme must be applied consistently to all pages, forms, tables, and navigation.",
-      "reqIds": [
-        "REQ-5"
-      ],
-      "version": 1
-    }
-  ],
-  "new_feature_requests": [
-    {
-      "id": "AR-1",
-      "summary": "Log fuel sales with fields: date/time, fuel type, quantity, price per litre, total amount, vehicle plate number, attendant name, payment method",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-2",
-      "summary": "Full sales history view that is always preserved and never wiped",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-3",
-      "summary": "Reporting and summary features: daily totals, sales by fuel type, and export functionality",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-4",
-      "summary": "No login/authentication required — open for anyone to use",
-      "reqIds": [],
-      "status": "pending"
-    },
-    {
-      "id": "AR-5",
-      "summary": "Create a backend data model and storage for fuel sale records with fields: date/time, fuel type (e.g. Petrol, Diesel, Premium), quantity in litres, price per litre, total amount, vehicle plate number, attendant name, and payment method. Expose functions to create a new sale record and retrieve all sale records. Records must be persisted and never wiped on upgrade.",
+      "id": "feature-fix-the-form-reset-logic-across-all-form-modals-purchaseorderformmodal-supplierformmodal-staffformmodal-shiftformmodal-expenses-so-that-resetting-form-fields-on-page-load-or-modal-mount-only-clears-the-local-react-form-state-input-fields-return-to-blank-defaults-and-does-not-delete-overwrite-or-otherwise-affect-any-saved-records-stored-in-the-zustand-app-store-or-backend-database",
+      "title": "Fix the form reset logic across all form modals (PurchaseOrderFormModal, SupplierFormModal, StaffFormModal, ShiftFormModal, Expenses) so that resetting form fields on page load or modal mount only clears the local React form state (input fields return to blank defaults) and does NOT delete, overwrite, or otherwise affect any saved records stored in the Zustand app store or backend database.",
       "reqIds": [
         "REQ-1"
       ],
-      "status": "pending"
+      "version": 1
     }
   ],
-  "gameProjectType": "none",
-  "projectName": "Fuel Station Sales Tracker",
+  "new_feature_requests": [],
+  "projectName": "Petrol Pump Manager",
   "clarification_mode": "instant",
   "clarification_rounds": 0
 }

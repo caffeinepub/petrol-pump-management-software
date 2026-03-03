@@ -11,7 +11,6 @@ import {
   BarChart3,
   DollarSign,
   MoreHorizontal,
-  ClipboardList,
   X,
 } from 'lucide-react';
 
@@ -22,7 +21,6 @@ interface SidebarProps {
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  { label: 'Fuel Sales Log', icon: ClipboardList, path: '/fuel-sales-log' },
   { label: 'Fuel Sales', icon: Fuel, path: '/sales' },
   { label: 'Inventory', icon: Package, path: '/inventory' },
   { label: 'Customers', icon: Users, path: '/customers' },

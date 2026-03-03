@@ -1,114 +1,44 @@
 {
   "kind": "build_request",
-  "title": "Build Fuel Station Sales Tracker",
-  "projectName": "Fuel Station Tracker",
-  "priority": "normal",
+  "title": "Fix form reset clearing saved database records",
+  "projectName": "Petrol Pump Manager",
+  "priority": "high",
   "requirements": [
     {
       "id": "REQ-1",
-      "text": "Create a backend data model and storage for fuel sale records with fields: date/time, fuel type (e.g. Petrol, Diesel, Premium), quantity in litres, price per litre, total amount, vehicle plate number, attendant name, and payment method. Expose functions to create a new sale record and retrieve all sale records. Records must be persisted and never wiped on upgrade.",
-      "target": "backend",
-      "source": {
-        "messageIds": [
-          "msg-12",
-          "msg-14",
-          "msg-16"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A fuel sale record can be created with all required fields via a backend call.",
-        "All previously saved records are returned when querying the sale history.",
-        "Records survive canister upgrades — no data loss on redeploy.",
-        "No authentication is required to call any backend function."
-      ]
-    },
-    {
-      "id": "REQ-2",
-      "text": "Build a fuel sales log page where any user (no login required) can fill in and submit a form to record a new fuel sale. The form must include: date/time picker, fuel type selector, quantity (litres), price per litre, auto-calculated total amount, vehicle plate number, attendant name, and payment method. On submit the record is saved to the backend and immediately reflected in the history list.",
+      "text": "Fix the form reset logic across all form modals (PurchaseOrderFormModal, SupplierFormModal, StaffFormModal, ShiftFormModal, Expenses) so that resetting form fields on page load or modal mount only clears the local React form state (input fields return to blank defaults) and does NOT delete, overwrite, or otherwise affect any saved records stored in the Zustand app store or backend database.",
       "target": "frontend",
       "source": {
         "messageIds": [
-          "msg-12",
-          "msg-14",
-          "msg-16"
+          "msg-1",
+          "msg-2"
+        ],
+        "quotes": [
+          "Previous data and history were also removed.",
+          "Form fields reset on page load (blank form for new entry), Existing saved records remain intact in the database"
         ]
       },
       "acceptanceCriteria": [
-        "The form contains all required fields: date/time, fuel type, quantity, price per litre, total amount (auto-calculated), vehicle plate number, attendant name, payment method.",
-        "Submitting the form saves the record to the backend.",
-        "The new record immediately appears in the sales history list after submission.",
-        "No login or authentication is required to access or submit the form."
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "text": "Display a full sales history table showing all recorded fuel sales, sorted by most recent first. The table must show all fields (date/time, fuel type, quantity, price per litre, total amount, vehicle plate number, attendant name, payment method). History must always reflect persisted backend data and must never be wiped or reset on page load or any action.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-12",
-          "msg-14",
-          "msg-16"
-        ]
-      },
-      "acceptanceCriteria": [
-        "All saved fuel sale records are displayed in the history table.",
-        "Records are sorted with the most recent at the top.",
-        "All 8 data fields are visible in the table.",
-        "Reloading the page does not wipe or reset the history — all records persist."
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "text": "Add a reporting and summary section with: (1) daily totals showing total litres sold and total revenue for each day, (2) a breakdown of sales by fuel type showing volume and revenue per type, and (3) an export function that downloads the full sales history as a CSV file.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-14",
-          "msg-16"
-        ]
-      },
-      "acceptanceCriteria": [
-        "A daily totals summary shows total litres and revenue grouped by date.",
-        "A fuel type breakdown shows total litres and revenue per fuel type.",
-        "An export button downloads all sales records as a CSV file with all fields included.",
-        "Summaries update automatically when new sales are added."
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "text": "Apply a consistent industrial / fuel-station visual theme across the entire app: dark navy or charcoal background, amber or orange accent colors, bold sans-serif typography, clean card-based layout for data and summaries. The theme must be applied consistently to all pages, forms, tables, and navigation.",
-      "target": "frontend",
-      "source": {
-        "messageIds": [
-          "msg-16"
-        ]
-      },
-      "acceptanceCriteria": [
-        "All pages use a cohesive dark navy/charcoal and amber/orange color palette.",
-        "Typography is bold and legible throughout.",
-        "Data tables, forms, and summary cards follow a consistent card-based layout.",
-        "No page deviates from the established visual theme."
+        "On page load, all form modals open with blank/default field values.",
+        "All previously saved records (purchase orders, suppliers, staff, shifts, expenses) remain visible and intact after page load.",
+        "Submitting a new record adds it to the existing list without removing prior entries.",
+        "The Zustand store seed data and any persisted records are not cleared or reset during form initialization.",
+        "No store actions that delete or overwrite collections (e.g., setState resetting arrays to empty) are called during form mount or page load."
       ]
     }
   ],
   "constraints": [
-    "No login or authentication is required — all features must be accessible without signing in.",
-    "Fuel sale records must never be wiped or overwritten on page load, form submission, or canister upgrade.",
-    "Do not modify files under frontend/src/hooks/useInternetIdentity.ts, frontend/src/hooks/useActor.ts, frontend/src/main.tsx, or frontend/src/components/ui."
+    "Do not modify backend data models or storage logic.",
+    "Do not alter immutable frontend paths: useInternetIdentity.ts, useActor.ts, main.tsx, or any component under frontend/src/components/ui.",
+    "Form field reset must only affect local component state, not global Zustand store state."
   ],
   "nonGoals": [
-    "User authentication or Internet Identity login.",
-    "Inventory/stock management beyond what is needed for sales logging.",
-    "Staff management, shift scheduling, or payroll features.",
-    "Customer loyalty points or customer profile management.",
-    "Supplier or purchase order management.",
-    "Billing or invoice generation."
+    "Adding a manual Reset button to forms.",
+    "Changing any UI layout or visual styling.",
+    "Modifying backend Motoko actor logic."
   ],
   "imageRequirements": {
-    "required": [
-      "Fuel station banner illustration with a dark night-time atmosphere, amber-lit fuel pumps and a canopy, wide landscape format (banner-hero.dim_1200x300.png)"
-    ],
+    "required": [],
     "edits": []
   }
 }

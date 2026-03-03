@@ -1,108 +1,48 @@
 {
   "kind": "implementation_plan",
   "version": "1.0",
-  "title": "Fuel Station Sales Tracker - Frontend Implementation",
+  "title": "Fix form reset clearing saved database records",
   "requirements": [
     {
-      "id": "REQ-2",
-      "summary": "Build a public fuel sales log page with a form to record new sales and auto-calculated total amount",
+      "id": "REQ-1",
+      "summary": "Fix form reset logic in all form modals to only clear local React form state without affecting Zustand store or persisted records",
       "acceptanceCriteria": [
-        "The form contains all required fields: date/time, fuel type, quantity, price per litre, total amount (auto-calculated), vehicle plate number, attendant name, payment method.",
-        "Submitting the form saves the record to the backend.",
-        "The new record immediately appears in the sales history list after submission.",
-        "No login or authentication is required to access or submit the form."
+        "On page load, all form modals open with blank/default field values.",
+        "All previously saved records (purchase orders, suppliers, staff, shifts, expenses) remain visible and intact after page load.",
+        "Submitting a new record adds it to the existing list without removing prior entries.",
+        "The Zustand store seed data and any persisted records are not cleared or reset during form initialization.",
+        "No store actions that delete or overwrite collections (e.g., setState resetting arrays to empty) are called during form mount or page load."
       ],
       "file_operations": [
         {
-          "path": "frontend/src/pages/FuelSalesLog.tsx",
-          "operation": "create",
-          "description": "Create a public fuel sales log page featuring a form with date/time picker, fuel type dropdown (Petrol, Diesel, Premium), quantity input (litres), price per litre input, auto-calculated total amount display, vehicle plate number input, attendant name input, and payment method selector (Cash, Credit Card, Mobile Money). On form submit, call backend createSaleRecord and refresh the history list below the form. No authentication required to access or use this page."
+          "path": "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
+          "operation": "modify",
+          "description": "Review and fix the form reset logic to ensure that resetting form fields (e.g., in useEffect or on modal open) only clears the local React Hook Form state without calling any Zustand store actions that would delete or overwrite the purchase orders collection. Ensure form.reset() is scoped to local form state only."
         },
         {
-          "path": "frontend/src/App.tsx",
+          "path": "frontend/src/components/suppliers/SupplierFormModal.tsx",
           "operation": "modify",
-          "description": "Register the new /fuel-sales-log route in the TanStack Router configuration to make the FuelSalesLog page accessible without authentication."
+          "description": "Review and fix the form reset logic to ensure that resetting form fields (e.g., in useEffect or on modal open) only clears the local React Hook Form state without calling any Zustand store actions that would delete or overwrite the suppliers collection. Ensure form.reset() is scoped to local form state only."
         },
         {
-          "path": "frontend/src/components/layout/Sidebar.tsx",
+          "path": "frontend/src/components/staff/StaffFormModal.tsx",
           "operation": "modify",
-          "description": "Add a navigation link to the fuel sales log page in the sidebar menu for easy access from any part of the application."
-        }
-      ]
-    },
-    {
-      "id": "REQ-3",
-      "summary": "Display a full sales history table showing all recorded fuel sales sorted by most recent first",
-      "acceptanceCriteria": [
-        "All saved fuel sale records are displayed in the history table.",
-        "Records are sorted with the most recent at the top.",
-        "All 8 data fields are visible in the table.",
-        "Reloading the page does not wipe or reset the history — all records persist."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/FuelSalesLog.tsx",
-          "operation": "modify",
-          "description": "Add a sales history table section below the form that fetches all records via backend getAllSaleRecords using React Query. Display all fields: timestamp (formatted date/time), fuel type, quantity (litres), price per litre, total amount, vehicle plate number, attendant name, and payment method. Sort records by timestamp descending (most recent first). Use query invalidation after form submission to immediately show new records. Data persists across page reloads by querying the backend."
+          "description": "Review and fix the form reset logic to ensure that resetting form fields (e.g., in useEffect or on modal open) only clears the local React Hook Form state without calling any Zustand store actions that would delete or overwrite the staff collection. Ensure form.reset() is scoped to local form state only."
         },
         {
-          "path": "frontend/src/hooks/useFuelSales.ts",
-          "operation": "create",
-          "description": "Create a custom React Query hook useGetAllSaleRecords that calls backend.getAllSaleRecords() and returns the full list of fuel sale records with proper loading and error states. Also export a useCreateSaleRecord mutation hook that calls backend.createSaleRecord and invalidates the query cache to trigger automatic history refresh."
-        }
-      ]
-    },
-    {
-      "id": "REQ-4",
-      "summary": "Add a reporting and summary section with daily totals, fuel type breakdown, and CSV export",
-      "acceptanceCriteria": [
-        "A daily totals summary shows total litres and revenue grouped by date.",
-        "A fuel type breakdown shows total litres and revenue per fuel type.",
-        "An export button downloads all sales records as a CSV file with all fields included.",
-        "Summaries update automatically when new sales are added."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/pages/FuelSalesLog.tsx",
+          "path": "frontend/src/components/staff/ShiftFormModal.tsx",
           "operation": "modify",
-          "description": "Add a reporting section above the history table with three summary cards: (1) Daily Totals showing aggregated litres sold and total revenue per day, (2) Fuel Type Breakdown showing total litres and revenue by fuel type (Petrol, Diesel, Premium), and (3) an Export CSV button that generates and downloads a CSV file containing all sale records with all 8 fields. Summaries auto-update when React Query cache is invalidated after new sales are added."
+          "description": "Review and fix the form reset logic to ensure that resetting form fields (e.g., in useEffect or on modal open) only clears the local React Hook Form state without calling any Zustand store actions that would delete or overwrite the shifts collection. Ensure form.reset() is scoped to local form state only."
         },
         {
-          "path": "frontend/src/utils/csvExport.ts",
-          "operation": "create",
-          "description": "Create utility functions to convert fuel sale records array to CSV format with headers (Date/Time, Fuel Type, Quantity Litres, Price Per Litre, Total Amount, Vehicle Plate, Attendant Name, Payment Method) and trigger browser download of the generated CSV file."
-        }
-      ]
-    },
-    {
-      "id": "REQ-5",
-      "summary": "Apply a consistent industrial fuel-station visual theme with dark navy/charcoal background and amber/orange accents",
-      "acceptanceCriteria": [
-        "All pages use a cohesive dark navy/charcoal and amber/orange color palette.",
-        "Typography is bold and legible throughout.",
-        "Data tables, forms, and summary cards follow a consistent card-based layout.",
-        "No page deviates from the established visual theme."
-      ],
-      "file_operations": [
-        {
-          "path": "frontend/src/index.css",
+          "path": "frontend/src/pages/Expenses.tsx",
           "operation": "modify",
-          "description": "Update global CSS custom properties to enforce an industrial fuel-station theme: set base background to dark navy (#0f172a or similar charcoal), primary accent colors to amber/orange (#f59e0b range), use bold sans-serif typography (Rajdhani or similar), ensure card backgrounds use slightly lighter navy with amber borders or accents. Apply theme consistently to all semantic color tokens (foreground, muted, accent, border, input, ring, etc.) so all components automatically inherit the industrial aesthetic."
+          "description": "Review and fix the expense form reset logic (if the expense form is embedded directly in this page or managed via local state) to ensure that resetting form fields only clears local React form state without calling any Zustand store actions that would delete or overwrite the expenses collection."
         },
         {
-          "path": "frontend/tailwind.config.js",
+          "path": "frontend/src/store/appStore.ts",
           "operation": "modify",
-          "description": "Extend Tailwind theme with custom fuel-station color palette tokens (navy base, charcoal backgrounds, amber primary, orange accents) using oklch color space. Ensure card, border, and text utility classes reference these new tokens. Add or adjust font weights to favor bold headings and legible body text for an industrial look."
-        },
-        {
-          "path": "frontend/src/pages/FuelSalesLog.tsx",
-          "operation": "modify",
-          "description": "Apply the industrial theme to the fuel sales log page: use dark card backgrounds with amber borders for the form and summary sections, amber-colored buttons, bold headings, and consistent spacing. Ensure the history table uses dark striped rows with amber highlights on hover. Reference the generated banner image at frontend/public/assets/generated/banner-hero.dim_1200x300.png as a hero image at the top of the page to reinforce the night-time fuel station atmosphere."
-        },
-        {
-          "path": "frontend/src/components/layout/AppLayout.tsx",
-          "operation": "modify",
-          "description": "Ensure the root layout applies the dark navy background globally and that the sidebar and top bar use the industrial theme colors (charcoal sidebar background, amber active link highlights). This guarantees theme consistency across all pages."
+          "description": "Audit all store actions (addSupplier, updateSupplier, deleteSupplier, addPurchaseOrder, updatePurchaseOrderStatus, addStaff, updateStaff, deleteStaff, addShift, addExpense, etc.) to ensure none of them inadvertently reset or overwrite entire collections. Verify that seed data initialization does not run on every page load or form mount; it should only initialize once when the store is first created."
         }
       ]
     }
