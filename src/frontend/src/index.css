@@ -1,0 +1,188 @@
+/* Self-hosted fonts - no external requests */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* Dark Navy + Amber Industrial Theme */
+    --background: 0.16 0.02 250;
+    --foreground: 0.92 0.01 250;
+    --card: 0.2 0.025 250;
+    --card-foreground: 0.92 0.01 250;
+    --popover: 0.22 0.025 250;
+    --popover-foreground: 0.92 0.01 250;
+    --primary: 0.75 0.18 65;
+    --primary-foreground: 0.12 0.02 250;
+    --secondary: 0.25 0.03 250;
+    --secondary-foreground: 0.85 0.01 250;
+    --muted: 0.22 0.025 250;
+    --muted-foreground: 0.58 0.02 250;
+    --accent: 0.75 0.18 65;
+    --accent-foreground: 0.12 0.02 250;
+    --destructive: 0.6 0.22 25;
+    --destructive-foreground: 0.98 0 0;
+    --border: 0.28 0.03 250;
+    --input: 0.28 0.03 250;
+    --ring: 0.75 0.18 65;
+
+    /* Chart colors */
+    --chart-1: 0.75 0.18 65;
+    --chart-2: 0.65 0.16 200;
+    --chart-3: 0.6 0.2 145;
+    --chart-4: 0.7 0.18 30;
+    --chart-5: 0.55 0.15 280;
+
+    /* Sidebar */
+    --sidebar: 0.13 0.025 250;
+    --sidebar-foreground: 0.88 0.01 250;
+    --sidebar-primary: 0.75 0.18 65;
+    --sidebar-primary-foreground: 0.12 0.02 250;
+    --sidebar-accent: 0.2 0.03 250;
+    --sidebar-accent-foreground: 0.88 0.01 250;
+    --sidebar-border: 0.22 0.03 250;
+    --sidebar-ring: 0.75 0.18 65;
+
+    /* Custom tokens */
+    --amber: 0.75 0.18 65;
+    --amber-light: 0.82 0.16 70;
+    --amber-dark: 0.62 0.2 55;
+    --navy-900: 0.13 0.025 250;
+    --navy-800: 0.16 0.02 250;
+    --navy-700: 0.2 0.025 250;
+    --navy-600: 0.25 0.03 250;
+    --success: 0.62 0.18 145;
+    --warning: 0.75 0.18 65;
+    --danger: 0.6 0.22 25;
+
+    /* Dashboard metric card accent tokens */
+    --card-revenue-from: oklch(0.3 0.09 145);
+    --card-revenue-to: oklch(0.22 0.04 145);
+    --card-revenue-border: oklch(0.62 0.2 145);
+    --card-revenue-glow: oklch(0.62 0.2 145 / 0.25);
+    --card-revenue-text: oklch(0.75 0.18 145);
+
+    --card-expenses-from: oklch(0.3 0.09 25);
+    --card-expenses-to: oklch(0.22 0.04 25);
+    --card-expenses-border: oklch(0.65 0.22 25);
+    --card-expenses-glow: oklch(0.65 0.22 25 / 0.25);
+    --card-expenses-text: oklch(0.75 0.2 25);
+
+    --card-profit-from: oklch(0.28 0.07 200);
+    --card-profit-to: oklch(0.22 0.04 200);
+    --card-profit-border: oklch(0.65 0.18 200);
+    --card-profit-glow: oklch(0.65 0.18 200 / 0.25);
+    --card-profit-text: oklch(0.75 0.16 200);
+
+    --card-customers-from: oklch(0.28 0.07 280);
+    --card-customers-to: oklch(0.22 0.04 280);
+    --card-customers-border: oklch(0.6 0.2 280);
+    --card-customers-glow: oklch(0.6 0.2 280 / 0.25);
+    --card-customers-text: oklch(0.72 0.18 280);
+
+    /* Fuel type colors */
+    --fuel-petrol: oklch(0.72 0.2 55);
+    --fuel-diesel: oklch(0.6 0.18 230);
+    --fuel-cng: oklch(0.65 0.18 145);
+    --fuel-lpg: oklch(0.78 0.16 80);
+    --fuel-ev: oklch(0.6 0.18 185);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Outfit", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system,
+      sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+}
+
+@layer utilities {
+  .text-amber {
+    color: oklch(var(--amber));
+  }
+  .bg-amber {
+    background-color: oklch(var(--amber));
+  }
+  .border-amber {
+    border-color: oklch(var(--amber));
+  }
+  .text-amber-light {
+    color: oklch(var(--amber-light));
+  }
+  .bg-navy-900 {
+    background-color: oklch(var(--navy-900));
+  }
+  .bg-navy-800 {
+    background-color: oklch(var(--navy-800));
+  }
+  .bg-navy-700 {
+    background-color: oklch(var(--navy-700));
+  }
+  .bg-navy-600 {
+    background-color: oklch(var(--navy-600));
+  }
+  .border-navy-600 {
+    border-color: oklch(var(--navy-600));
+  }
+  .text-success {
+    color: oklch(var(--success));
+  }
+  .text-danger {
+    color: oklch(var(--danger));
+  }
+  .bg-success {
+    background-color: oklch(var(--success));
+  }
+  .bg-danger {
+    background-color: oklch(var(--danger));
+  }
+
+  .gauge-ok {
+    background-color: oklch(0.62 0.18 145);
+  }
+  .gauge-low {
+    background-color: oklch(0.75 0.18 65);
+  }
+  .gauge-critical {
+    background-color: oklch(0.6 0.22 25);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: oklch(var(--navy-900));
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: oklch(var(--navy-600));
+    border-radius: 2px;
+  }
+
+  @media print {
+    .no-print {
+      display: none !important;
+    }
+    .print-only {
+      display: block !important;
+    }
+    body {
+      background: white !important;
+      color: black !important;
+    }
+  }
+}
