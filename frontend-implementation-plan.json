@@ -1,0 +1,59 @@
+{
+  "kind": "implementation_plan",
+  "version": "1.0",
+  "title": "Auto-clear all form fields on page load for fresh data entry",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "summary": "Reset all form fields to blank/empty defaults automatically when each form/modal mounts for new entry, ensuring no pre-populated values appear while preserving the ability to edit existing records",
+      "acceptanceCriteria": [
+        "Opening PurchaseOrderFormModal for a new entry shows all fields blank with no pre-populated date, supplier, fuel type, invoice number, or quantity values.",
+        "Opening RecordSaleModal shows all fields blank with no pre-populated fuel type, quantity, payment method, pump number, or staff values.",
+        "Opening SupplierFormModal for a new supplier shows all fields blank.",
+        "Opening StaffFormModal for a new staff member shows all fields blank including hire date and salary.",
+        "Opening RegisterCustomerModal for a new customer shows all fields blank.",
+        "Opening ShiftFormModal shows all fields blank including date, start/end time, and pump number.",
+        "Expense entry form opens with all fields blank.",
+        "Existing saved records in the store and database are unaffected after forms are reset.",
+        "Edit forms (when opened for an existing record) still correctly populate with that record's data — only 'new entry' forms open blank."
+      ],
+      "file_operations": [
+        {
+          "path": "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
+          "operation": "modify",
+          "description": "Modify form state initialization to reset all fields (date, supplier, fuelType, invoiceNumber, totalLitres, pricePerLitre, orderDate, deliveryDate, status) to empty/default values when the modal opens for a new purchase order. Ensure the useEffect or initialization logic clears form state on mount when no existing order is being edited."
+        },
+        {
+          "path": "frontend/src/components/sales/RecordSaleModal.tsx",
+          "operation": "modify",
+          "description": "Modify form state initialization to reset all fields (fuelType, quantity, paymentMethod, pumpNumber, staffId, totalAmount) to empty/default values when the modal opens. Add a useEffect hook that runs on mount to clear form state, ensuring no pre-populated values appear for new sale entries."
+        },
+        {
+          "path": "frontend/src/components/suppliers/SupplierFormModal.tsx",
+          "operation": "modify",
+          "description": "Modify form state initialization to reset all fields (name, contact, email, address, fuelTypes array) to empty/default values when the modal opens for a new supplier. Ensure the component distinguishes between add mode (blank fields) and edit mode (pre-populated with existing supplier data)."
+        },
+        {
+          "path": "frontend/src/components/staff/StaffFormModal.tsx",
+          "operation": "modify",
+          "description": "Modify form state initialization to reset all fields (name, role, contact, hireDate, status, salary amount, salary payPeriod) to empty/default values when the modal opens for a new staff member. Add logic to detect whether a staff member is being edited (pre-populate) or added new (blank fields)."
+        },
+        {
+          "path": "frontend/src/components/customers/RegisterCustomerModal.tsx",
+          "operation": "modify",
+          "description": "Modify form state initialization to reset all fields (name, contact, vehicleNumber) to empty values when the modal opens for a new customer. Ensure edit mode still pre-populates fields with the selected customer's data while new registrations start with blank inputs."
+        },
+        {
+          "path": "frontend/src/components/staff/ShiftFormModal.tsx",
+          "operation": "modify",
+          "description": "Modify form state initialization to reset all fields (staffId, date, startTime, endTime, pumpNumber, status) to empty/default values when the modal opens for a new shift. Add a useEffect that clears form state on mount to ensure fresh data entry."
+        },
+        {
+          "path": "frontend/src/pages/Expenses.tsx",
+          "operation": "modify",
+          "description": "Modify the expense entry form/modal state initialization to reset all expense fields (category, description, amount, date, etc.) to empty/default values when the form opens for a new expense entry. Ensure the form clears on mount and does not retain previous values."
+        }
+      ]
+    }
+  ]
+}

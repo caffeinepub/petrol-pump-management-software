@@ -1,0 +1,47 @@
+{
+  "kind": "build_request",
+  "title": "Auto-clear all form fields on page load for fresh data entry",
+  "projectName": "Petrol Pump Manager",
+  "priority": "normal",
+  "requirements": [
+    {
+      "id": "REQ-1",
+      "text": "Reset all form fields to blank/empty defaults automatically when each form/modal mounts, so no pre-populated values appear on page load or when opening a form for new entry. This applies to all forms across the application including: Create Purchase Order (PurchaseOrderFormModal), Record Sale (RecordSaleModal), Add/Edit Supplier (SupplierFormModal), Add/Edit Staff (StaffFormModal), Add/Edit Customer (RegisterCustomerModal), Add Expense, and Shift Form (ShiftFormModal). Saved records in the database must not be deleted — only the form input fields are reset.",
+      "target": "frontend",
+      "source": {
+        "messageIds": [
+          "msg-recent"
+        ],
+        "quotes": [
+          "Clear all form fields (resetting all inputs to blank) so the form is ready for fresh data entry",
+          "This will happen automatically when the page loads, with no pre-populated values",
+          "No saved/stored records will be deleted — only the form inputs will be reset"
+        ]
+      },
+      "acceptanceCriteria": [
+        "Opening PurchaseOrderFormModal for a new entry shows all fields blank with no pre-populated date, supplier, fuel type, invoice number, or quantity values.",
+        "Opening RecordSaleModal shows all fields blank with no pre-populated fuel type, quantity, payment method, pump number, or staff values.",
+        "Opening SupplierFormModal for a new supplier shows all fields blank.",
+        "Opening StaffFormModal for a new staff member shows all fields blank including hire date and salary.",
+        "Opening RegisterCustomerModal for a new customer shows all fields blank.",
+        "Opening ShiftFormModal shows all fields blank including date, start/end time, and pump number.",
+        "Expense entry form opens with all fields blank.",
+        "Existing saved records in the store and database are unaffected after forms are reset.",
+        "Edit forms (when opened for an existing record) still correctly populate with that record's data — only 'new entry' forms open blank."
+      ]
+    }
+  ],
+  "constraints": [
+    "Do not delete or modify any saved records in the backend or Zustand store — only reset form input state.",
+    "Edit/update forms opened for an existing record must still pre-populate with that record's current values."
+  ],
+  "nonGoals": [
+    "Adding a manual 'Clear' or 'Reset' button — clearing is automatic on mount only.",
+    "Clearing or resetting data in the backend canister.",
+    "Modifying the dashboard, reports, or read-only display pages."
+  ],
+  "imageRequirements": {
+    "required": [],
+    "edits": []
+  }
+}

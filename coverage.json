@@ -1,0 +1,51 @@
+{
+  "kind": "coverage_report",
+  "version": "1.0",
+  "generatedAt": "2026-03-03T12:09:01.874Z",
+  "sources": {
+    "buildRequest": true,
+    "implementationPlan": true
+  },
+  "requirements": {
+    "total": 1,
+    "implemented": 1,
+    "items": [
+      {
+        "id": "REQ-1",
+        "summary": "Reset all form fields to blank/empty defaults automatically when each form/modal mounts, so no pre-populated values appear on page load or when opening a form for new entry. This applies to all forms across the application including: Create Purchase Order (PurchaseOrderFormModal), Record Sale (RecordSaleModal), Add/Edit Supplier (SupplierFormModal), Add/Edit Staff (StaffFormModal), Add/Edit Customer (RegisterCustomerModal), Add Expense, and Shift Form (ShiftFormModal). Saved records in the database must not be deleted — only the form input fields are reset.",
+        "status": "implemented",
+        "plannedFiles": [
+          "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
+          "frontend/src/components/sales/RecordSaleModal.tsx",
+          "frontend/src/components/suppliers/SupplierFormModal.tsx",
+          "frontend/src/components/staff/StaffFormModal.tsx",
+          "frontend/src/components/customers/RegisterCustomerModal.tsx",
+          "frontend/src/components/staff/ShiftFormModal.tsx",
+          "frontend/src/pages/Expenses.tsx"
+        ],
+        "matchedFiles": [
+          "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
+          "frontend/src/components/suppliers/SupplierFormModal.tsx",
+          "frontend/src/components/staff/StaffFormModal.tsx",
+          "frontend/src/components/staff/ShiftFormModal.tsx",
+          "frontend/src/pages/Expenses.tsx"
+        ]
+      }
+    ]
+  },
+  "changedFiles": [
+    "build-request.json",
+    "feature_evidence.json",
+    "frontend-file-summaries.txt",
+    "frontend-implementation-plan.json",
+    "frontend/src/components/staff/ShiftFormModal.tsx",
+    "frontend/src/components/staff/StaffFormModal.tsx",
+    "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
+    "frontend/src/components/suppliers/SupplierFormModal.tsx",
+    "frontend/src/pages/Expenses.tsx",
+    "project_state.json",
+    "scratch/component-selection.json",
+    "spec.md",
+    "spec_vs_diff_report.json"
+  ]
+}

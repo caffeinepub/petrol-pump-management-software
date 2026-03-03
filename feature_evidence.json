@@ -1,0 +1,29 @@
+{
+  "kind": "feature_evidence_report",
+  "features": [
+    {
+      "featureId": "feature-reset-all-form-fields-to-blank-empty-defaults-automatically-when-each-form-modal-mounts-so-no-pre-populated-values-appear-on-page-load-or-when-opening-a-form-for-new-entry-this-applies-to-all-forms-across-the-application-including-create-purchase-order-purchaseorderformmodal-record-sale-recordsalemodal-add-edit-supplier-supplierformmodal-add-edit-staff-staffformmodal-add-edit-customer-registercustomermodal-add-expense-and-shift-form-shiftformmodal-saved-records-in-the-database-must-not-be-deleted-only-the-form-input-fields-are-reset",
+      "featureTitle": "Reset all form fields to blank/empty defaults automatically when each form/modal mounts, so no pre-populated values appear on page load or when opening a form for new entry. This applies to all forms across the application including: Create Purchase Order (PurchaseOrderFormModal), Record Sale (RecordSaleModal), Add/Edit Supplier (SupplierFormModal), Add/Edit Staff (StaffFormModal), Add/Edit Customer (RegisterCustomerModal), Add Expense, and Shift Form (ShiftFormModal). Saved records in the database must not be deleted — only the form input fields are reset.",
+      "files": [
+        "frontend/src/components/staff/ShiftFormModal.tsx",
+        "frontend/src/components/staff/StaffFormModal.tsx",
+        "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
+        "frontend/src/components/suppliers/SupplierFormModal.tsx",
+        "frontend/src/pages/Expenses.tsx"
+      ],
+      "components": [
+        "authorization@4.0.0",
+        "blob-storage@4.0.0",
+        "core-infrastructure@1.0.2",
+        "shadcn-ui@1.0.0",
+        "build-template-react@1.0.0",
+        "initial-app@1.0.0",
+        "github-export-icp-cli@1.0.0"
+      ],
+      "testIds": [
+        "REQ-1"
+      ],
+      "confidence": "high"
+    }
+  ]
+}

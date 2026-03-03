@@ -1,0 +1,37 @@
+{
+  "kind": "spec_vs_diff_report",
+  "version": "1.0",
+  "generatedAt": "2026-03-03T12:09:01.869Z",
+  "summary": "The diff implements auto-clear on mount for most of the required forms. ShiftFormModal, StaffFormModal (new entry), PurchaseOrderFormModal, SupplierFormModal (new entry), and Expenses modal all have useEffect-based resets. StaffFormModal and SupplierFormModal also correctly pre-populate when editing. However, there is no evidence in the diff that RecordSaleModal or RegisterCustomerModal received the auto-clear useEffect treatment in this change set.",
+  "missing_requirements": [
+    {
+      "id": "REQ-1",
+      "requirement": "Opening RecordSaleModal shows all fields blank with no pre-populated fuel type, quantity, payment method, pump number, or staff values.",
+      "reason": "The diff summary for RecordSaleModal describes 'pre-filled price per litre from inventory' suggesting pre-population exists, and there is no explicit useEffect reset on mount documented for new entries in RecordSaleModal.",
+      "evidence": [
+        "frontend/src/components/sales/RecordSaleModal.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    },
+    {
+      "id": "REQ-1",
+      "requirement": "Opening RegisterCustomerModal for a new customer shows all fields blank.",
+      "reason": "The diff summary for RegisterCustomerModal only mentions form validation and edit/add mode support with no mention of a useEffect reset to blank fields on mount for new customer entry. The file content is not shown in the diff so there is no evidence the auto-clear was implemented.",
+      "evidence": [
+        "frontend/src/components/customers/RegisterCustomerModal.tsx",
+        "frontend-file-summaries.txt"
+      ]
+    }
+  ],
+  "hallucinated_features": [],
+  "confidence": 0.72,
+  "changed_files": [
+    "frontend-file-summaries.txt",
+    "frontend/src/components/staff/ShiftFormModal.tsx",
+    "frontend/src/components/staff/StaffFormModal.tsx",
+    "frontend/src/components/suppliers/PurchaseOrderFormModal.tsx",
+    "frontend/src/components/suppliers/SupplierFormModal.tsx",
+    "frontend/src/pages/Expenses.tsx",
+    "project_state.json"
+  ]
+}
