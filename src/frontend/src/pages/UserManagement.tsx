@@ -28,7 +28,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Edit2, Plus, Shield, Trash2, Users } from "lucide-react";
+import {
+  AlertCircle,
+  Edit2,
+  Lock,
+  Plus,
+  Shield,
+  Trash2,
+  User,
+  Users,
+} from "lucide-react";
 import { motion } from "motion/react";
 import React, { useState } from "react";
 import {
@@ -90,33 +99,69 @@ function canEditFromLevel(level: PermissionLevel): boolean {
 
 function UserFormModal({ open, onOpenChange, editUser }: UserFormModalProps) {
   const { addUser, updateUser } = useOwnerStore();
+  const isEditing = !!editUser;
 
   const [name, setName] = useState(editUser?.name ?? "");
+  const [username, setUsername] = useState(editUser?.username ?? "");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [canEdit, setCanEdit] = useState<boolean>(
     canEditFromLevel(editUser?.permissionLevel ?? "Admin"),
   );
-  const [principalId, setPrincipalId] = useState(editUser?.principalId ?? "");
-  const [errors, setErrors] = useState<{ name?: string }>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    username?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
 
-  // Sync form when editUser changes
+  // Sync form when editUser changes or dialog opens
   React.useEffect(() => {
     if (open) {
       setName(editUser?.name ?? "");
+      setUsername(editUser?.username ?? "");
+      setPassword("");
+      setConfirmPassword("");
       setCanEdit(canEditFromLevel(editUser?.permissionLevel ?? "Admin"));
-      setPrincipalId(editUser?.principalId ?? "");
       setErrors({});
     }
   }, [open, editUser]);
 
   const validate = () => {
     const errs: typeof errors = {};
-    if (!name.trim()) errs.name = "Name is required";
+    if (!name.trim()) errs.name = "Full name is required.";
+    if (!username.trim()) errs.username = "Username is required.";
+    else if (username.trim().length < 3)
+      errs.username = "Username must be at least 3 characters.";
+
+    if (!isEditing) {
+      // Adding: password required
+      if (!password) errs.password = "Password is required.";
+      else if (password.length < 6)
+        errs.password = "Password must be at least 6 characters.";
+      if (!confirmPassword)
+        errs.confirmPassword = "Please confirm the password.";
+      else if (password !== confirmPassword)
+        errs.confirmPassword = "Passwords do not match.";
+    } else {
+      // Editing: password optional, but if filled must be valid
+      if (password) {
+        if (password.length < 6)
+          errs.password = "New password must be at least 6 characters.";
+        if (!confirmPassword)
+          errs.confirmPassword = "Please confirm the new password.";
+        else if (password !== confirmPassword)
+          errs.confirmPassword = "Passwords do not match.";
+      }
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) return;
+
     // Determine final permission level
     // If editing an Owner, keep them as Owner (no downgrade)
     const resolvedLevel: PermissionLevel =
@@ -127,17 +172,24 @@ function UserFormModal({ open, onOpenChange, editUser }: UserFormModalProps) {
           : "Viewer";
 
     if (editUser) {
-      updateUser(editUser.id, {
-        name: name.trim(),
-        permissionLevel: resolvedLevel,
-        principalId: principalId.trim() || undefined,
-      });
+      await updateUser(
+        editUser.id,
+        {
+          name: name.trim(),
+          username: username.trim(),
+          permissionLevel: resolvedLevel,
+        },
+        password || undefined,
+      );
     } else {
-      addUser({
-        name: name.trim(),
-        permissionLevel: resolvedLevel,
-        principalId: principalId.trim() || undefined,
-      });
+      await addUser(
+        {
+          name: name.trim(),
+          username: username.trim(),
+          permissionLevel: resolvedLevel,
+        },
+        password,
+      );
     }
     onOpenChange(false);
   };
@@ -156,28 +208,149 @@ function UserFormModal({ open, onOpenChange, editUser }: UserFormModalProps) {
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Name */}
+          {/* Full Name */}
           <div className="space-y-1.5">
             <Label htmlFor="user-name" className="text-foreground text-sm">
               Full Name <span className="text-destructive">*</span>
             </Label>
-            <Input
-              id="user-name"
-              placeholder="e.g. Rahul Mehta"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="bg-background border-border text-foreground"
-              data-ocid="user.input"
-            />
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="user-name"
+                placeholder="e.g. Rahul Mehta"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setErrors((prev) => ({ ...prev, name: undefined }));
+                }}
+                className="pl-10 bg-background border-border text-foreground"
+                data-ocid="user.input"
+              />
+            </div>
             {errors.name && (
               <p
-                className="text-xs text-destructive"
+                className="text-xs text-destructive flex items-center gap-1"
                 data-ocid="user.error_state"
               >
-                {errors.name}
+                <AlertCircle className="h-3 w-3" /> {errors.name}
               </p>
             )}
           </div>
+
+          {/* Username */}
+          <div className="space-y-1.5">
+            <Label htmlFor="user-username" className="text-foreground text-sm">
+              Username <span className="text-destructive">*</span>
+            </Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="user-username"
+                placeholder="e.g. rahul123"
+                value={username}
+                autoComplete="off"
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setErrors((prev) => ({ ...prev, username: undefined }));
+                }}
+                className="pl-10 bg-background border-border text-foreground"
+                data-ocid="user.input"
+              />
+            </div>
+            {errors.username && (
+              <p
+                className="text-xs text-destructive flex items-center gap-1"
+                data-ocid="user.error_state"
+              >
+                <AlertCircle className="h-3 w-3" /> {errors.username}
+              </p>
+            )}
+          </div>
+
+          {/* Password */}
+          <div className="space-y-1.5">
+            <Label htmlFor="user-password" className="text-foreground text-sm">
+              {isEditing ? (
+                <>
+                  New Password{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (optional)
+                  </span>
+                </>
+              ) : (
+                <>
+                  Password <span className="text-destructive">*</span>
+                </>
+              )}
+            </Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <Input
+                id="user-password"
+                type="password"
+                placeholder={
+                  isEditing
+                    ? "Leave blank to keep current password"
+                    : "Minimum 6 characters"
+                }
+                value={password}
+                autoComplete="new-password"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                className="pl-10 bg-background border-border text-foreground"
+                data-ocid="user.input"
+              />
+            </div>
+            {errors.password && (
+              <p
+                className="text-xs text-destructive flex items-center gap-1"
+                data-ocid="user.error_state"
+              >
+                <AlertCircle className="h-3 w-3" /> {errors.password}
+              </p>
+            )}
+          </div>
+
+          {/* Confirm Password — only show if adding, or editing with a password value */}
+          {(!isEditing || password) && (
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="user-confirm-password"
+                className="text-foreground text-sm"
+              >
+                Confirm Password <span className="text-destructive">*</span>
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  id="user-confirm-password"
+                  type="password"
+                  placeholder="Re-enter password"
+                  value={confirmPassword}
+                  autoComplete="new-password"
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setErrors((prev) => ({
+                      ...prev,
+                      confirmPassword: undefined,
+                    }));
+                  }}
+                  className="pl-10 bg-background border-border text-foreground"
+                  data-ocid="user.input"
+                />
+              </div>
+              {errors.confirmPassword && (
+                <p
+                  className="text-xs text-destructive flex items-center gap-1"
+                  data-ocid="user.error_state"
+                >
+                  <AlertCircle className="h-3 w-3" /> {errors.confirmPassword}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Edit Permissions Toggle */}
           {editUser?.permissionLevel !== "Owner" && (
@@ -211,26 +384,6 @@ function UserFormModal({ open, onOpenChange, editUser }: UserFormModalProps) {
               </p>
             </div>
           )}
-
-          {/* Principal ID (optional) */}
-          <div className="space-y-1.5">
-            <Label htmlFor="user-principal" className="text-foreground text-sm">
-              Internet Identity Principal{" "}
-              <span className="text-muted-foreground">(optional)</span>
-            </Label>
-            <Input
-              id="user-principal"
-              placeholder="e.g. abcd1-efgh2-..."
-              value={principalId}
-              onChange={(e) => setPrincipalId(e.target.value)}
-              className="bg-background border-border text-foreground font-mono text-xs"
-              data-ocid="user.input"
-            />
-            <p className="text-xs text-muted-foreground">
-              Link this user to an Internet Identity principal for automatic
-              role detection.
-            </p>
-          </div>
         </div>
 
         <DialogFooter className="gap-2">
@@ -243,7 +396,7 @@ function UserFormModal({ open, onOpenChange, editUser }: UserFormModalProps) {
             Cancel
           </Button>
           <Button
-            onClick={handleSave}
+            onClick={() => void handleSave()}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
             data-ocid="user.save_button"
           >
@@ -405,11 +558,11 @@ export default function UserManagement() {
                   <TableHead className="text-muted-foreground font-semibold">
                     Name
                   </TableHead>
-                  <TableHead className="text-muted-foreground font-semibold">
-                    Permission Level
+                  <TableHead className="text-muted-foreground font-semibold hidden sm:table-cell">
+                    Username
                   </TableHead>
-                  <TableHead className="text-muted-foreground font-semibold hidden md:table-cell">
-                    Principal ID
+                  <TableHead className="text-muted-foreground font-semibold">
+                    Permission
                   </TableHead>
                   <TableHead className="text-muted-foreground font-semibold hidden sm:table-cell">
                     Created Date
@@ -441,19 +594,13 @@ export default function UserManagement() {
                         </span>
                       </div>
                     </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <span className="text-sm font-mono text-muted-foreground">
+                        {user.username}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <PermissionBadge level={user.permissionLevel} />
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {user.principalId ? (
-                        <span className="text-xs font-mono text-muted-foreground truncate max-w-[160px] block">
-                          {user.principalId}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/50">
-                          —
-                        </span>
-                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">
                       {new Date(user.createdAt).toLocaleDateString("en-IN", {

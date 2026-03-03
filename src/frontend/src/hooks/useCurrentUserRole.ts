@@ -4,30 +4,29 @@ import {
   canAccess,
   useOwnerStore,
 } from "../store/ownerStore";
-import { useInternetIdentity } from "./useInternetIdentity";
 
 export { canAccess };
 export { PERMISSION_HIERARCHY };
 
 /**
  * Returns the current user's permission level.
- * - If no users have been created yet, returns "Owner" (bootstrap mode).
- * - Otherwise, looks up the logged-in principal in the user list.
- * - Falls back to "Viewer" if the principal is not found.
+ * - If owner setup has NOT been completed → returns "Owner" (bootstrap mode).
+ * - Otherwise, finds the active user by ID and returns their permission level.
+ * - Falls back to "Viewer" if no active user is found.
  */
 export function useCurrentUserRole(): PermissionLevel {
-  const { identity } = useInternetIdentity();
-  const { users } = useOwnerStore();
+  const ownerSetupDone = useOwnerStore((s) => s.ownerSetupDone);
+  const activeUserId = useOwnerStore((s) => s.activeUserId);
+  const users = useOwnerStore((s) => s.users);
 
-  // Bootstrap: no users yet → treat as Owner
-  if (users.length === 0) {
+  // Bootstrap: setup not done yet → treat as Owner
+  if (!ownerSetupDone) {
     return "Owner";
   }
 
-  const principalStr = identity?.getPrincipal().toString();
-  if (!principalStr) return "Viewer";
+  if (!activeUserId) return "Viewer";
 
-  const match = users.find((u) => u.principalId === principalStr);
+  const match = users.find((u) => u.id === activeUserId);
   return match?.permissionLevel ?? "Viewer";
 }
 

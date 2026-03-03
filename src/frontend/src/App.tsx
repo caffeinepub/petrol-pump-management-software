@@ -17,6 +17,7 @@ import FuelSales from "./pages/FuelSales";
 import Inventory from "./pages/Inventory";
 import LoginPage from "./pages/LoginPage";
 import Other from "./pages/Other";
+import OwnerSetup from "./pages/OwnerSetup";
 import ProfileSetup from "./pages/ProfileSetup";
 import Reports from "./pages/Reports";
 import StaffManagement from "./pages/StaffManagement";
@@ -43,6 +44,12 @@ const profileSetupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/profile-setup",
   component: ProfileSetup,
+});
+
+const ownerSetupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/owner-setup",
+  component: OwnerSetup,
 });
 
 const dashboardRoute = createRoute({
@@ -120,6 +127,7 @@ const userManagementRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   loginRoute,
   profileSetupRoute,
+  ownerSetupRoute,
   layoutRoute.addChildren([
     dashboardRoute,
     salesRoute,

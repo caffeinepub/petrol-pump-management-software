@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AlertTriangle } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -33,13 +34,16 @@ interface Props {
 const PAYMENT_METHODS: PaymentMethod[] = ["Cash", "Card", "UPI", "Credit"];
 
 export default function RecordSaleModal({ open, onClose }: Props) {
-  const inventory = useAppStore((s) => s.inventory);
+  // Always use fuelInventory as the source of truth (inventory and fuelInventory are kept in sync)
+  const fuelInventory = useAppStore((s) => s.fuelInventory);
+
   const staff = useAppStore((s) => s.staff);
   const addFuelSale = useAppStore((s) => s.addFuelSale);
   const adjustStock = useAppStore((s) => s.adjustStock);
   const customers = useAppStore((s) => s.customers);
 
-  const [fuelType, setFuelType] = useState<FuelType | "">("");
+  // Use string type to support any custom fuel type names, not just the FuelType union
+  const [fuelType, setFuelType] = useState<string>("");
   const [litres, setLitres] = useState("");
   const [pricePerLitre, setPricePerLitre] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
@@ -47,15 +51,18 @@ export default function RecordSaleModal({ open, onClose }: Props) {
   const [recordedBy, setRecordedBy] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const activeStaff = staff.filter((s) => s.isActive);
+  const hasActiveStaff = activeStaff.length > 0;
+  const fuelTypes = fuelInventory.map((i) => i.fuelType);
 
   // Pre-fill price when fuel type changes
   useEffect(() => {
     if (fuelType) {
-      const inv = inventory.find((i) => i.fuelType === fuelType);
+      const inv = fuelInventory.find((i) => i.fuelType === fuelType);
       if (inv) setPricePerLitre(String(inv.pricePerLitre));
     }
-  }, [fuelType, inventory]);
+  }, [fuelType, fuelInventory]);
 
   // Reset form on open
   useEffect(() => {
@@ -71,7 +78,7 @@ export default function RecordSaleModal({ open, onClose }: Props) {
     }
   }, [open]);
 
-  const selectedInventory = inventory.find((i) => i.fuelType === fuelType);
+  const selectedInventory = fuelInventory.find((i) => i.fuelType === fuelType);
   const litresNum = Number.parseFloat(litres) || 0;
   const priceNum = Number.parseFloat(pricePerLitre) || 0;
   const total = litresNum * priceNum;
@@ -87,14 +94,17 @@ export default function RecordSaleModal({ open, onClose }: Props) {
       errs.pricePerLitre = "Enter valid price";
     if (!paymentMethod) errs.paymentMethod = "Select payment method";
     if (!pumpNumber) errs.pumpNumber = "Enter pump number";
-    if (!recordedBy) errs.recordedBy = "Select staff member";
+    if (!recordedBy)
+      errs.recordedBy = hasActiveStaff
+        ? "Select staff member"
+        : "Enter staff name";
     if (selectedInventory && litresNum > selectedInventory.currentStock) {
       errs.litres = `Insufficient stock (${selectedInventory.currentStock.toFixed(0)}L available)`;
     }
     return errs;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
@@ -102,52 +112,43 @@ export default function RecordSaleModal({ open, onClose }: Props) {
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const customer = customers.find((c) => c.id === customerId);
-      const staffMember = staff.find((s) => s.id === recordedBy);
+    const customer = customers.find((c) => c.id === customerId);
+    // When using staff dropdown, recordedBy is the staff id; when text input, it's the name directly
+    const staffMember = hasActiveStaff
+      ? staff.find((s) => s.id === recordedBy)
+      : undefined;
+    const staffName = staffMember?.name ?? recordedBy;
 
-      const newSale: FuelSale = {
-        id: `sale-${Date.now()}`,
-        date: new Date().toISOString().split("T")[0],
-        fuelType: fuelType as FuelType,
-        litres: litresNum,
-        quantity: litresNum,
-        pricePerLitre: priceNum,
-        pricePerLiter: priceNum,
-        total,
-        totalAmount: total,
-        paymentMethod: paymentMethod as PaymentMethod,
-        pumpNumber: Number.parseInt(pumpNumber, 10),
-        recordedBy: staffMember?.name ?? recordedBy,
-        staffName: staffMember?.name ?? recordedBy,
-        customerId: customerId || undefined,
-        customerName: customer?.name,
-      };
+    const newSale: FuelSale = {
+      id: `sale-${Date.now()}`,
+      date: new Date().toISOString().split("T")[0],
+      fuelType: fuelType as FuelType,
+      litres: litresNum,
+      quantity: litresNum,
+      pricePerLitre: priceNum,
+      pricePerLiter: priceNum,
+      total,
+      totalAmount: total,
+      paymentMethod: paymentMethod as PaymentMethod,
+      pumpNumber: Number.parseInt(pumpNumber, 10) || 1,
+      recordedBy: staffName,
+      staffName: staffName,
+      customerId: customerId || undefined,
+      customerName: customer?.name,
+    };
 
-      addFuelSale(newSale);
+    addFuelSale(newSale);
 
-      if (selectedInventory) {
-        adjustStock(
-          selectedInventory.id,
-          -litresNum,
-          "Sale",
-          staffMember?.name ?? recordedBy,
-        );
-      }
-
-      toast.success(
-        `Sale recorded: ${litresNum}L ${fuelType} for ₹${total.toFixed(2)}`,
-      );
-      onClose();
-    } catch {
-      toast.error("Failed to record sale. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+    // Deduct stock from inventory if the matching tank is found
+    if (selectedInventory) {
+      adjustStock(selectedInventory.id, -litresNum, "Sale", staffName);
     }
-  };
 
-  const fuelTypes = inventory.map((i) => i.fuelType);
+    toast.success(
+      `Sale recorded: ${litresNum}L ${fuelType} for ₹${total.toFixed(2)}`,
+    );
+    onClose();
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -156,17 +157,32 @@ export default function RecordSaleModal({ open, onClose }: Props) {
           <DialogTitle>Record Fuel Sale</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Warning when no fuel types are available */}
+          {fuelTypes.length === 0 && (
+            <div
+              className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-700 dark:text-yellow-400"
+              data-ocid="sale.error_state"
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                No fuel types found. Please add fuel to{" "}
+                <strong>Inventory</strong> first before recording a sale.
+              </span>
+            </div>
+          )}
+
           {/* Fuel Type */}
           <div className="space-y-1">
             <Label>Fuel Type *</Label>
             <Select
               value={fuelType}
               onValueChange={(v) => {
-                setFuelType(v as FuelType);
+                setFuelType(v);
                 setErrors((p) => ({ ...p, fuelType: "" }));
               }}
+              disabled={fuelTypes.length === 0}
             >
-              <SelectTrigger>
+              <SelectTrigger data-ocid="sale.select">
                 <SelectValue placeholder="Select fuel type" />
               </SelectTrigger>
               <SelectContent>
@@ -178,7 +194,7 @@ export default function RecordSaleModal({ open, onClose }: Props) {
               </SelectContent>
             </Select>
             {errors.fuelType && (
-              <p className="text-destructive text-xs">{errors.fuelType}</p>
+              <p className="text-xs text-destructive">{errors.fuelType}</p>
             )}
             {selectedInventory && (
               <p
@@ -203,9 +219,10 @@ export default function RecordSaleModal({ open, onClose }: Props) {
                 setErrors((p) => ({ ...p, litres: "" }));
               }}
               placeholder="e.g. 20"
+              data-ocid="sale.input"
             />
             {errors.litres && (
-              <p className="text-destructive text-xs">{errors.litres}</p>
+              <p className="text-xs text-destructive">{errors.litres}</p>
             )}
           </div>
 
@@ -223,15 +240,16 @@ export default function RecordSaleModal({ open, onClose }: Props) {
                 setErrors((p) => ({ ...p, pricePerLitre: "" }));
               }}
               placeholder="e.g. 96.72"
+              data-ocid="sale.input"
             />
             {errors.pricePerLitre && (
-              <p className="text-destructive text-xs">{errors.pricePerLitre}</p>
+              <p className="text-xs text-destructive">{errors.pricePerLitre}</p>
             )}
           </div>
 
           {/* Total */}
           {litresNum > 0 && priceNum > 0 && (
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm">
+            <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm">
               <span className="text-muted-foreground">Total: </span>
               <span className="font-bold text-foreground">
                 ₹{total.toFixed(2)}
@@ -249,7 +267,7 @@ export default function RecordSaleModal({ open, onClose }: Props) {
                 setErrors((p) => ({ ...p, paymentMethod: "" }));
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger data-ocid="sale.select">
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
@@ -261,7 +279,7 @@ export default function RecordSaleModal({ open, onClose }: Props) {
               </SelectContent>
             </Select>
             {errors.paymentMethod && (
-              <p className="text-destructive text-xs">{errors.paymentMethod}</p>
+              <p className="text-xs text-destructive">{errors.paymentMethod}</p>
             )}
           </div>
 
@@ -278,37 +296,50 @@ export default function RecordSaleModal({ open, onClose }: Props) {
                 setErrors((p) => ({ ...p, pumpNumber: "" }));
               }}
               placeholder="e.g. 1"
+              data-ocid="sale.input"
             />
             {errors.pumpNumber && (
-              <p className="text-destructive text-xs">{errors.pumpNumber}</p>
+              <p className="text-xs text-destructive">{errors.pumpNumber}</p>
             )}
           </div>
 
-          {/* Staff */}
+          {/* Staff — dropdown if active staff exist, text input fallback otherwise */}
           <div className="space-y-1">
-            <Label>Recorded By *</Label>
-            <Select
-              value={recordedBy}
-              onValueChange={(v) => {
-                setRecordedBy(v);
-                setErrors((p) => ({ ...p, recordedBy: "" }));
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select staff member" />
-              </SelectTrigger>
-              <SelectContent>
-                {staff
-                  .filter((s) => s.isActive)
-                  .map((s) => (
+            <Label htmlFor="recordedBy">Recorded By *</Label>
+            {hasActiveStaff ? (
+              <Select
+                value={recordedBy}
+                onValueChange={(v) => {
+                  setRecordedBy(v);
+                  setErrors((p) => ({ ...p, recordedBy: "" }));
+                }}
+              >
+                <SelectTrigger data-ocid="sale.select">
+                  <SelectValue placeholder="Select staff member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeStaff.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.name}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id="recordedBy"
+                type="text"
+                value={recordedBy}
+                onChange={(e) => {
+                  setRecordedBy(e.target.value);
+                  setErrors((p) => ({ ...p, recordedBy: "" }));
+                }}
+                placeholder="Enter staff name"
+                data-ocid="sale.input"
+              />
+            )}
             {errors.recordedBy && (
-              <p className="text-destructive text-xs">{errors.recordedBy}</p>
+              <p className="text-xs text-destructive">{errors.recordedBy}</p>
             )}
           </div>
 
@@ -316,7 +347,7 @@ export default function RecordSaleModal({ open, onClose }: Props) {
           <div className="space-y-1">
             <Label>Customer (optional)</Label>
             <Select value={customerId} onValueChange={setCustomerId}>
-              <SelectTrigger>
+              <SelectTrigger data-ocid="sale.select">
                 <SelectValue placeholder="Walk-in / Select customer" />
               </SelectTrigger>
               <SelectContent>
@@ -335,12 +366,16 @@ export default function RecordSaleModal({ open, onClose }: Props) {
               type="button"
               variant="outline"
               onClick={onClose}
-              disabled={isSubmitting}
+              data-ocid="sale.cancel_button"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Recording..." : "Record Sale"}
+            <Button
+              type="submit"
+              disabled={fuelTypes.length === 0}
+              data-ocid="sale.submit_button"
+            >
+              Record Sale
             </Button>
           </DialogFooter>
         </form>

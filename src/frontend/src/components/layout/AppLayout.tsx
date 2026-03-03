@@ -5,6 +5,7 @@ import {
   canAccessRoute,
   useCurrentUserRole,
 } from "../../hooks/useCurrentUserRole";
+import { useOwnerStore } from "../../store/ownerStore";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 
@@ -15,12 +16,34 @@ export default function AppLayout() {
   const currentPath = routerState.location.pathname;
   const currentRole = useCurrentUserRole();
 
+  const ownerSetupDone = useOwnerStore((s) => s.ownerSetupDone);
+  const activeUserId = useOwnerStore((s) => s.activeUserId);
+
+  // Auth gate: redirect unauthenticated users
   useEffect(() => {
+    if (!ownerSetupDone) {
+      void navigate({ to: "/owner-setup" });
+      return;
+    }
+    if (activeUserId === null) {
+      void navigate({ to: "/login" });
+      return;
+    }
+  }, [ownerSetupDone, activeUserId, navigate]);
+
+  // Permission gate: redirect if the active user lacks access
+  useEffect(() => {
+    if (!ownerSetupDone || activeUserId === null) return;
     if (!canAccessRoute(currentRole, currentPath)) {
       toast.error("You don't have permission to access this page.");
       void navigate({ to: "/" });
     }
-  }, [currentRole, currentPath, navigate]);
+  }, [currentRole, currentPath, navigate, ownerSetupDone, activeUserId]);
+
+  // Don't render layout content while redirecting
+  if (!ownerSetupDone || activeUserId === null) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
