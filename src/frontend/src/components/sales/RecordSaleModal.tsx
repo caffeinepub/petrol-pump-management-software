@@ -359,12 +359,15 @@ export default function RecordSaleModal({ open, onClose }: Props) {
           {/* Customer (optional) */}
           <div className="space-y-1">
             <Label>Customer (optional)</Label>
-            <Select value={customerId} onValueChange={setCustomerId}>
+            <Select
+              value={customerId || "walk-in"}
+              onValueChange={(v) => setCustomerId(v === "walk-in" ? "" : v)}
+            >
               <SelectTrigger data-ocid="sale.select">
                 <SelectValue placeholder="Walk-in / Select customer" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Walk-in</SelectItem>
+                <SelectItem value="walk-in">Walk-in</SelectItem>
                 {(customers ?? []).map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
