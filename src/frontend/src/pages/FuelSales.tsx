@@ -55,9 +55,10 @@ export default function FuelSales() {
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const filtered = fuelSales.filter((sale) => {
+  const filtered = (fuelSales ?? []).filter((sale) => {
+    if (!sale || !sale.id) return false;
     const matchSearch =
-      sale.id.toLowerCase().includes(search.toLowerCase()) ||
+      (sale.id ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (sale.customerName ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (sale.staffName ?? "").toLowerCase().includes(search.toLowerCase());
     const matchFuel =
@@ -67,19 +68,21 @@ export default function FuelSales() {
     return matchSearch && matchFuel && matchPayment;
   });
 
-  const totalRevenue = fuelSales.reduce(
-    (sum, s) => sum + (s.totalAmount ?? s.total ?? 0),
+  const totalRevenue = (fuelSales ?? []).reduce(
+    (sum, s) => sum + (s?.totalAmount ?? s?.total ?? 0),
     0,
   );
-  const totalLitres = fuelSales.reduce(
-    (sum, s) => sum + (s.quantity ?? s.litres ?? 0),
+  const totalLitres = (fuelSales ?? []).reduce(
+    (sum, s) => sum + (s?.quantity ?? s?.litres ?? 0),
     0,
   );
   const uniqueCustomers = new Set(
-    fuelSales.map((s) => s.customerName).filter(Boolean),
+    (fuelSales ?? []).map((s) => s?.customerName).filter(Boolean),
   ).size;
 
-  const fuelTypes = Array.from(new Set(fuelInventory.map((f) => f.fuelType)));
+  const fuelTypes = Array.from(
+    new Set((fuelInventory ?? []).map((f) => f.fuelType)),
+  );
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
@@ -230,7 +233,7 @@ export default function FuelSales() {
                     </TableCell>
                     <TableCell className="text-sm">{sale.fuelType}</TableCell>
                     <TableCell className="text-sm">
-                      {sale.quantity.toFixed(2)}
+                      {(sale.quantity ?? sale.litres ?? 0).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
                       ₹
@@ -239,7 +242,7 @@ export default function FuelSales() {
                       )}
                     </TableCell>
                     <TableCell className="text-sm font-medium whitespace-nowrap">
-                      {formatINR(sale.totalAmount)}
+                      {formatINR(sale.totalAmount ?? sale.total ?? 0)}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge

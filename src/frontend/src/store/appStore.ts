@@ -1066,7 +1066,7 @@ export const useAppStore = create<AppState>()(
       // Bump version to force-clear stale persisted state from old deployments.
       // The migrate function returns undefined so Zustand falls back to the fresh
       // seed data defined above — this resolves all state-corruption issues.
-      version: 2,
+      version: 3,
       migrate: (_persistedState: unknown, _version: number) => {
         return undefined;
       },
