@@ -52,15 +52,21 @@ export default function RecordSaleModal({ open, onClose }: Props) {
   const [customerId, setCustomerId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const activeStaff = staff.filter((s) => s.isActive);
+  // Treat undefined isActive as active (old persisted records may not have this field)
+  const activeStaff = (staff ?? []).filter((s) => s.isActive !== false);
   const hasActiveStaff = activeStaff.length > 0;
-  const fuelTypes = fuelInventory.map((i) => i.fuelType);
+  // Filter out any null/undefined fuelType entries from stale persisted data
+  const fuelTypes = (fuelInventory ?? [])
+    .map((i) => i.fuelType)
+    .filter(Boolean);
 
   // Pre-fill price when fuel type changes
   useEffect(() => {
     if (fuelType) {
       const inv = fuelInventory.find((i) => i.fuelType === fuelType);
-      if (inv) setPricePerLitre(String(inv.pricePerLitre));
+      if (inv && inv.pricePerLitre != null && inv.pricePerLitre > 0) {
+        setPricePerLitre(String(inv.pricePerLitre));
+      }
     }
   }, [fuelType, fuelInventory]);
 
@@ -78,7 +84,9 @@ export default function RecordSaleModal({ open, onClose }: Props) {
     }
   }, [open]);
 
-  const selectedInventory = fuelInventory.find((i) => i.fuelType === fuelType);
+  const selectedInventory = (fuelInventory ?? []).find(
+    (i) => i.fuelType === fuelType,
+  );
   const litresNum = Number.parseFloat(litres) || 0;
   const priceNum = Number.parseFloat(pricePerLitre) || 0;
   const total = litresNum * priceNum;
@@ -106,48 +114,53 @@ export default function RecordSaleModal({ open, onClose }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
+    try {
+      const errs = validate();
+      if (Object.keys(errs).length > 0) {
+        setErrors(errs);
+        return;
+      }
+
+      const customer = (customers ?? []).find((c) => c.id === customerId);
+      // When using staff dropdown, recordedBy is the staff id; when text input, it's the name directly
+      const staffMember = hasActiveStaff
+        ? (staff ?? []).find((s) => s.id === recordedBy)
+        : undefined;
+      const staffName = staffMember?.name ?? recordedBy ?? "";
+
+      const newSale: FuelSale = {
+        id: `sale-${Date.now()}`,
+        date: new Date().toISOString().split("T")[0],
+        fuelType: fuelType as FuelType,
+        litres: litresNum,
+        quantity: litresNum,
+        pricePerLitre: priceNum,
+        pricePerLiter: priceNum,
+        total,
+        totalAmount: total,
+        paymentMethod: paymentMethod as PaymentMethod,
+        pumpNumber: Number.parseInt(pumpNumber, 10) || 1,
+        recordedBy: staffName,
+        staffName: staffName,
+        customerId: customerId || undefined,
+        customerName: customer?.name,
+      };
+
+      addFuelSale(newSale);
+
+      // Deduct stock from inventory if the matching tank is found
+      if (selectedInventory) {
+        adjustStock(selectedInventory.id, -litresNum, "Sale", staffName);
+      }
+
+      toast.success(
+        `Sale recorded: ${litresNum}L ${fuelType} for ₹${total.toFixed(2)}`,
+      );
+      onClose();
+    } catch (err) {
+      console.error("Error recording sale:", err);
+      toast.error("Failed to record sale. Please try again.");
     }
-
-    const customer = customers.find((c) => c.id === customerId);
-    // When using staff dropdown, recordedBy is the staff id; when text input, it's the name directly
-    const staffMember = hasActiveStaff
-      ? staff.find((s) => s.id === recordedBy)
-      : undefined;
-    const staffName = staffMember?.name ?? recordedBy;
-
-    const newSale: FuelSale = {
-      id: `sale-${Date.now()}`,
-      date: new Date().toISOString().split("T")[0],
-      fuelType: fuelType as FuelType,
-      litres: litresNum,
-      quantity: litresNum,
-      pricePerLitre: priceNum,
-      pricePerLiter: priceNum,
-      total,
-      totalAmount: total,
-      paymentMethod: paymentMethod as PaymentMethod,
-      pumpNumber: Number.parseInt(pumpNumber, 10) || 1,
-      recordedBy: staffName,
-      staffName: staffName,
-      customerId: customerId || undefined,
-      customerName: customer?.name,
-    };
-
-    addFuelSale(newSale);
-
-    // Deduct stock from inventory if the matching tank is found
-    if (selectedInventory) {
-      adjustStock(selectedInventory.id, -litresNum, "Sale", staffName);
-    }
-
-    toast.success(
-      `Sale recorded: ${litresNum}L ${fuelType} for ₹${total.toFixed(2)}`,
-    );
-    onClose();
   };
 
   return (
@@ -352,7 +365,7 @@ export default function RecordSaleModal({ open, onClose }: Props) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Walk-in</SelectItem>
-                {customers.map((c) => (
+                {(customers ?? []).map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>

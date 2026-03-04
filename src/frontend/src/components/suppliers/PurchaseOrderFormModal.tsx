@@ -58,7 +58,7 @@ export default function PurchaseOrderFormModal({ open, onClose }: Props) {
   }, [open]);
 
   const selectedSupplier = suppliers.find((s) => s.id === supplierId);
-  const availableFuelTypes: FuelType[] = selectedSupplier
+  const availableFuelTypes: (FuelType | string)[] = selectedSupplier
     ? (selectedSupplier.fuelTypes ?? selectedSupplier.fuelTypesSupplied ?? [])
     : ["Petrol", "Diesel", "CNG", "LPG"];
 

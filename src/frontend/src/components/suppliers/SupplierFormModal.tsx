@@ -37,7 +37,7 @@ export default function SupplierFormModal({
   const [contact, setContact] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
-  const [fuelTypes, setFuelTypes] = useState<FuelType[]>([]);
+  const [fuelTypes, setFuelTypes] = useState<(FuelType | string)[]>([]);
   const [rating, setRating] = useState("");
 
   useEffect(() => {

@@ -59,15 +59,22 @@ export default function FuelSales() {
     const matchSearch =
       sale.id.toLowerCase().includes(search.toLowerCase()) ||
       (sale.customerName ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      sale.staffName.toLowerCase().includes(search.toLowerCase());
-    const matchFuel = fuelFilter === "all" || sale.fuelType === fuelFilter;
+      (sale.staffName ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchFuel =
+      fuelFilter === "all" || (sale.fuelType ?? "") === fuelFilter;
     const matchPayment =
       paymentFilter === "all" || sale.paymentMethod === paymentFilter;
     return matchSearch && matchFuel && matchPayment;
   });
 
-  const totalRevenue = fuelSales.reduce((sum, s) => sum + s.totalAmount, 0);
-  const totalLitres = fuelSales.reduce((sum, s) => sum + s.quantity, 0);
+  const totalRevenue = fuelSales.reduce(
+    (sum, s) => sum + (s.totalAmount ?? s.total ?? 0),
+    0,
+  );
+  const totalLitres = fuelSales.reduce(
+    (sum, s) => sum + (s.quantity ?? s.litres ?? 0),
+    0,
+  );
   const uniqueCustomers = new Set(
     fuelSales.map((s) => s.customerName).filter(Boolean),
   ).size;
@@ -226,7 +233,10 @@ export default function FuelSales() {
                       {sale.quantity.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
-                      ₹{sale.pricePerLiter.toFixed(2)}
+                      ₹
+                      {(sale.pricePerLiter ?? sale.pricePerLitre ?? 0).toFixed(
+                        2,
+                      )}
                     </TableCell>
                     <TableCell className="text-sm font-medium whitespace-nowrap">
                       {formatINR(sale.totalAmount)}

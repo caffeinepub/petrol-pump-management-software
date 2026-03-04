@@ -35,7 +35,7 @@ export type ExpenseCategory =
 
 export interface FuelInventory {
   id: string;
-  fuelType: FuelType;
+  fuelType: FuelType | string;
   currentStock: number;
   capacity: number;
   pricePerLitre: number;
@@ -48,7 +48,7 @@ export interface FuelInventory {
 export interface FuelSale {
   id: string;
   date: string;
-  fuelType: FuelType;
+  fuelType: FuelType | string;
   litres: number;
   quantity: number;
   pricePerLitre: number;
@@ -84,8 +84,8 @@ export interface Supplier {
   contact: string;
   email: string;
   address: string;
-  fuelTypes: FuelType[];
-  fuelTypesSupplied: FuelType[];
+  fuelTypes: (FuelType | string)[];
+  fuelTypesSupplied: (FuelType | string)[];
   rating: number;
   lastDelivery: string;
 }
@@ -271,7 +271,7 @@ function makeInventory(
 function makeSale(base: {
   id: string;
   date: string;
-  fuelType: FuelType;
+  fuelType: FuelType | string;
   litres: number;
   pricePerLitre: number;
   total: number;
@@ -898,24 +898,24 @@ export const useAppStore = create<AppState>()(
 
       addFuelSale: (sale) =>
         set((state) => ({
-          fuelSales: [sale, ...state.fuelSales],
-          sales: [sale, ...state.sales],
+          fuelSales: [sale, ...(state.fuelSales ?? [])],
+          sales: [sale, ...(state.sales ?? [])],
         })),
 
       recordSale: (sale) =>
         set((state) => ({
-          fuelSales: [sale, ...state.fuelSales],
-          sales: [sale, ...state.sales],
+          fuelSales: [sale, ...(state.fuelSales ?? [])],
+          sales: [sale, ...(state.sales ?? [])],
         })),
 
       deleteFuelSale: (id) =>
         set((state) => ({
-          fuelSales: state.fuelSales.filter((s) => s.id !== id),
-          sales: state.sales.filter((s) => s.id !== id),
+          fuelSales: (state.fuelSales ?? []).filter((s) => s.id !== id),
+          sales: (state.sales ?? []).filter((s) => s.id !== id),
         })),
 
       addCustomer: (customer) =>
-        set((state) => ({ customers: [...state.customers, customer] })),
+        set((state) => ({ customers: [...(state.customers ?? []), customer] })),
 
       updateCustomer: (id, updates) =>
         set((state) => ({
@@ -939,7 +939,7 @@ export const useAppStore = create<AppState>()(
         })),
 
       addSupplier: (supplier) =>
-        set((state) => ({ suppliers: [...state.suppliers, supplier] })),
+        set((state) => ({ suppliers: [...(state.suppliers ?? []), supplier] })),
 
       updateSupplier: (id, updates) =>
         set((state) => ({
@@ -959,7 +959,9 @@ export const useAppStore = create<AppState>()(
         })),
 
       addPurchaseOrder: (order) =>
-        set((state) => ({ purchaseOrders: [...state.purchaseOrders, order] })),
+        set((state) => ({
+          purchaseOrders: [...(state.purchaseOrders ?? []), order],
+        })),
 
       updatePurchaseOrderStatus: (id, status) =>
         set((state) => ({
@@ -976,7 +978,7 @@ export const useAppStore = create<AppState>()(
         })),
 
       addStaff: (member) =>
-        set((state) => ({ staff: [...state.staff, member] })),
+        set((state) => ({ staff: [...(state.staff ?? []), member] })),
 
       updateStaff: (id, updates) =>
         set((state) => ({
@@ -990,14 +992,14 @@ export const useAppStore = create<AppState>()(
 
       addShift: (shift) =>
         set((state) => ({
-          shifts: [...state.shifts, shift],
-          shiftSchedules: [...state.shiftSchedules, shift],
+          shifts: [...(state.shifts ?? []), shift],
+          shiftSchedules: [...(state.shiftSchedules ?? []), shift],
         })),
 
       addExpense: (expense) =>
         set((state) => ({
           expenses: [
-            ...state.expenses,
+            ...(state.expenses ?? []),
             {
               ...expense,
               id: `exp-${Date.now()}`,
@@ -1061,6 +1063,13 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "fuel-station-store",
+      // Bump version to force-clear stale persisted state from old deployments.
+      // The migrate function returns undefined so Zustand falls back to the fresh
+      // seed data defined above — this resolves all state-corruption issues.
+      version: 2,
+      migrate: (_persistedState: unknown, _version: number) => {
+        return undefined;
+      },
     },
   ),
 );
