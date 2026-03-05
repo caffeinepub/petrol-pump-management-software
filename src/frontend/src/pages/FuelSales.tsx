@@ -73,7 +73,7 @@ export default function FuelSales() {
     0,
   );
   const totalLitres = (fuelSales ?? []).reduce(
-    (sum, s) => sum + (s?.quantity ?? s?.litres ?? 0),
+    (sum, s) => sum + (s?.litres ?? s?.quantity ?? 0),
     0,
   );
   const uniqueCustomers = new Set(
@@ -187,11 +187,15 @@ export default function FuelSales() {
             <TableHeader>
               <TableRow>
                 <TableHead className="whitespace-nowrap">Sale ID</TableHead>
-                <TableHead className="whitespace-nowrap">Date</TableHead>
+                <TableHead className="whitespace-nowrap">Sale Date</TableHead>
                 <TableHead className="whitespace-nowrap">Fuel Type</TableHead>
+                <TableHead className="whitespace-nowrap">
+                  Start Totalizer
+                </TableHead>
+                <TableHead className="whitespace-nowrap">
+                  End Totalizer
+                </TableHead>
                 <TableHead className="whitespace-nowrap">Qty (L)</TableHead>
-                <TableHead className="whitespace-nowrap">Price/L</TableHead>
-                <TableHead className="whitespace-nowrap">Total</TableHead>
                 <TableHead className="whitespace-nowrap hidden sm:table-cell">
                   Payment
                 </TableHead>
@@ -229,20 +233,21 @@ export default function FuelSales() {
                       {sale.id}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
-                      {sale.date}
+                      {sale.saleDate ?? sale.date}
                     </TableCell>
                     <TableCell className="text-sm">{sale.fuelType}</TableCell>
-                    <TableCell className="text-sm">
-                      {(sale.quantity ?? sale.litres ?? 0).toFixed(2)}
+                    <TableCell className="text-sm whitespace-nowrap">
+                      {sale.startTotalizer != null
+                        ? sale.startTotalizer.toFixed(2)
+                        : "—"}
                     </TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
-                      ₹
-                      {(sale.pricePerLiter ?? sale.pricePerLitre ?? 0).toFixed(
-                        2,
-                      )}
+                      {sale.endTotalizer != null
+                        ? sale.endTotalizer.toFixed(2)
+                        : "—"}
                     </TableCell>
-                    <TableCell className="text-sm font-medium whitespace-nowrap">
-                      {formatINR(sale.totalAmount ?? sale.total ?? 0)}
+                    <TableCell className="text-sm">
+                      {(sale.litres ?? sale.quantity ?? 0).toFixed(2)}
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
                       <Badge

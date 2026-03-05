@@ -42,10 +42,12 @@ export default function RecordSaleModal({ open, onClose }: Props) {
   const adjustStock = useAppStore((s) => s.adjustStock);
   const customers = useAppStore((s) => s.customers);
 
-  // Use string type to support any custom fuel type names, not just the FuelType union
   const [fuelType, setFuelType] = useState<string>("");
-  const [litres, setLitres] = useState("");
-  const [pricePerLitre, setPricePerLitre] = useState("");
+  const [startTotalizer, setStartTotalizer] = useState("");
+  const [endTotalizer, setEndTotalizer] = useState("");
+  const [saleDate, setSaleDate] = useState(
+    () => new Date().toISOString().split("T")[0],
+  );
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   const [pumpNumber, setPumpNumber] = useState("");
   const [recordedBy, setRecordedBy] = useState("");
@@ -60,22 +62,24 @@ export default function RecordSaleModal({ open, onClose }: Props) {
     .map((i) => i.fuelType)
     .filter(Boolean);
 
-  // Pre-fill price when fuel type changes
-  useEffect(() => {
-    if (fuelType) {
-      const inv = fuelInventory.find((i) => i.fuelType === fuelType);
-      if (inv && inv.pricePerLitre != null && inv.pricePerLitre > 0) {
-        setPricePerLitre(String(inv.pricePerLitre));
-      }
-    }
-  }, [fuelType, fuelInventory]);
+  const startNum = Number.parseFloat(startTotalizer) || 0;
+  const endNum = Number.parseFloat(endTotalizer) || 0;
+  const litresDispensed = endNum > startNum ? endNum - startNum : 0;
+
+  const selectedInventory = (fuelInventory ?? []).find(
+    (i) => i.fuelType === fuelType,
+  );
+  const stockOk = selectedInventory
+    ? litresDispensed <= selectedInventory.currentStock
+    : true;
 
   // Reset form on open
   useEffect(() => {
     if (open) {
       setFuelType("");
-      setLitres("");
-      setPricePerLitre("");
+      setStartTotalizer("");
+      setEndTotalizer("");
+      setSaleDate(new Date().toISOString().split("T")[0]);
       setPaymentMethod("");
       setPumpNumber("");
       setRecordedBy("");
@@ -84,30 +88,24 @@ export default function RecordSaleModal({ open, onClose }: Props) {
     }
   }, [open]);
 
-  const selectedInventory = (fuelInventory ?? []).find(
-    (i) => i.fuelType === fuelType,
-  );
-  const litresNum = Number.parseFloat(litres) || 0;
-  const priceNum = Number.parseFloat(pricePerLitre) || 0;
-  const total = litresNum * priceNum;
-  const stockOk = selectedInventory
-    ? litresNum <= selectedInventory.currentStock
-    : true;
-
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!fuelType) errs.fuelType = "Select a fuel type";
-    if (!litres || litresNum <= 0) errs.litres = "Enter valid litres";
-    if (!pricePerLitre || priceNum <= 0)
-      errs.pricePerLitre = "Enter valid price";
+    if (!startTotalizer || startNum < 0)
+      errs.startTotalizer = "Enter valid start totalizer reading";
+    if (!endTotalizer || endNum <= 0)
+      errs.endTotalizer = "Enter valid end totalizer reading";
+    if (endNum <= startNum)
+      errs.endTotalizer = "End totalizer must be greater than start totalizer";
+    if (!saleDate) errs.saleDate = "Enter sale date";
     if (!paymentMethod) errs.paymentMethod = "Select payment method";
     if (!pumpNumber) errs.pumpNumber = "Enter pump number";
     if (!recordedBy)
       errs.recordedBy = hasActiveStaff
         ? "Select staff member"
         : "Enter staff name";
-    if (selectedInventory && litresNum > selectedInventory.currentStock) {
-      errs.litres = `Insufficient stock (${selectedInventory.currentStock.toFixed(0)}L available)`;
+    if (selectedInventory && litresDispensed > selectedInventory.currentStock) {
+      errs.endTotalizer = `Insufficient stock (${selectedInventory.currentStock.toFixed(0)}L available)`;
     }
     return errs;
   };
@@ -130,14 +128,15 @@ export default function RecordSaleModal({ open, onClose }: Props) {
 
       const newSale: FuelSale = {
         id: `sale-${Date.now()}`,
-        date: new Date().toISOString().split("T")[0],
+        date: saleDate,
+        saleDate: saleDate,
         fuelType: fuelType as FuelType,
-        litres: litresNum,
-        quantity: litresNum,
-        pricePerLitre: priceNum,
-        pricePerLiter: priceNum,
-        total,
-        totalAmount: total,
+        startTotalizer: startNum,
+        endTotalizer: endNum,
+        litres: litresDispensed,
+        quantity: litresDispensed,
+        total: 0,
+        totalAmount: 0,
         paymentMethod: paymentMethod as PaymentMethod,
         pumpNumber: Number.parseInt(pumpNumber, 10) || 1,
         recordedBy: staffName,
@@ -150,11 +149,11 @@ export default function RecordSaleModal({ open, onClose }: Props) {
 
       // Deduct stock from inventory if the matching tank is found
       if (selectedInventory) {
-        adjustStock(selectedInventory.id, -litresNum, "Sale", staffName);
+        adjustStock(selectedInventory.id, -litresDispensed, "Sale", staffName);
       }
 
       toast.success(
-        `Sale recorded: ${litresNum}L ${fuelType} for ₹${total.toFixed(2)}`,
+        `Sale recorded: ${litresDispensed.toFixed(2)}L ${fuelType} dispensed`,
       );
       onClose();
     } catch (err) {
@@ -165,7 +164,7 @@ export default function RecordSaleModal({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Record Fuel Sale</DialogTitle>
         </DialogHeader>
@@ -183,6 +182,24 @@ export default function RecordSaleModal({ open, onClose }: Props) {
               </span>
             </div>
           )}
+
+          {/* Sale Date */}
+          <div className="space-y-1">
+            <Label htmlFor="saleDate">Sale Date *</Label>
+            <Input
+              id="saleDate"
+              type="date"
+              value={saleDate}
+              onChange={(e) => {
+                setSaleDate(e.target.value);
+                setErrors((p) => ({ ...p, saleDate: "" }));
+              }}
+              data-ocid="sale.input"
+            />
+            {errors.saleDate && (
+              <p className="text-xs text-destructive">{errors.saleDate}</p>
+            )}
+          </div>
 
           {/* Fuel Type */}
           <div className="space-y-1">
@@ -218,54 +235,56 @@ export default function RecordSaleModal({ open, onClose }: Props) {
             )}
           </div>
 
-          {/* Litres */}
+          {/* Start Totalizer */}
           <div className="space-y-1">
-            <Label htmlFor="litres">Litres *</Label>
+            <Label htmlFor="startTotalizer">Start Totalizer *</Label>
             <Input
-              id="litres"
+              id="startTotalizer"
               type="number"
               min={0}
               step={0.01}
-              value={litres}
+              value={startTotalizer}
               onChange={(e) => {
-                setLitres(e.target.value);
-                setErrors((p) => ({ ...p, litres: "" }));
+                setStartTotalizer(e.target.value);
+                setErrors((p) => ({ ...p, startTotalizer: "" }));
               }}
-              placeholder="e.g. 20"
+              placeholder="e.g. 1200.00"
               data-ocid="sale.input"
             />
-            {errors.litres && (
-              <p className="text-xs text-destructive">{errors.litres}</p>
+            {errors.startTotalizer && (
+              <p className="text-xs text-destructive">
+                {errors.startTotalizer}
+              </p>
             )}
           </div>
 
-          {/* Price per litre */}
+          {/* End Totalizer */}
           <div className="space-y-1">
-            <Label htmlFor="price">Price per Litre (₹) *</Label>
+            <Label htmlFor="endTotalizer">End Totalizer *</Label>
             <Input
-              id="price"
+              id="endTotalizer"
               type="number"
               min={0}
               step={0.01}
-              value={pricePerLitre}
+              value={endTotalizer}
               onChange={(e) => {
-                setPricePerLitre(e.target.value);
-                setErrors((p) => ({ ...p, pricePerLitre: "" }));
+                setEndTotalizer(e.target.value);
+                setErrors((p) => ({ ...p, endTotalizer: "" }));
               }}
-              placeholder="e.g. 96.72"
+              placeholder="e.g. 1220.00"
               data-ocid="sale.input"
             />
-            {errors.pricePerLitre && (
-              <p className="text-xs text-destructive">{errors.pricePerLitre}</p>
+            {errors.endTotalizer && (
+              <p className="text-xs text-destructive">{errors.endTotalizer}</p>
             )}
           </div>
 
-          {/* Total */}
-          {litresNum > 0 && priceNum > 0 && (
+          {/* Litres Dispensed (derived) */}
+          {startTotalizer && endTotalizer && endNum > startNum && (
             <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Total: </span>
+              <span className="text-muted-foreground">Litres Dispensed: </span>
               <span className="font-bold text-foreground">
-                ₹{total.toFixed(2)}
+                {litresDispensed.toFixed(2)} L
               </span>
             </div>
           )}

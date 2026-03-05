@@ -39,8 +39,9 @@ export default function PurchaseOrderFormModal({ open, onClose }: Props) {
   const [fuelType, setFuelType] = useState<FuelType | "">("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [pricePerLitre, setPricePerLitre] = useState("");
+  const [invoicePrice, setInvoicePrice] = useState("");
   const [orderDate, setOrderDate] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState("");
   const [expectedDelivery, setExpectedDelivery] = useState("");
   const [status, setStatus] = useState<OrderStatus>("Pending");
 
@@ -50,8 +51,9 @@ export default function PurchaseOrderFormModal({ open, onClose }: Props) {
       setFuelType("");
       setInvoiceNumber("");
       setQuantity("");
-      setPricePerLitre("");
+      setInvoicePrice("");
       setOrderDate("");
+      setInvoiceDate("");
       setExpectedDelivery("");
       setStatus("Pending");
     }
@@ -63,12 +65,12 @@ export default function PurchaseOrderFormModal({ open, onClose }: Props) {
     : ["Petrol", "Diesel", "CNG", "LPG"];
 
   const qty = Number.parseFloat(quantity) || 0;
-  const price = Number.parseFloat(pricePerLitre) || 0;
-  const totalAmount = qty * price;
+  const invPrice = Number.parseFloat(invoicePrice) || 0;
+  const pricePerLitre = qty > 0 ? invPrice / qty : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!supplierId || !fuelType || !quantity || !pricePerLitre) return;
+    if (!supplierId || !fuelType || !quantity || !invoicePrice) return;
 
     const supplier = suppliers.find((s) => s.id === supplierId);
     const order: PurchaseOrder = {
@@ -78,12 +80,12 @@ export default function PurchaseOrderFormModal({ open, onClose }: Props) {
       fuelType: fuelType as FuelType,
       quantity: qty,
       totalLitres: qty,
-      pricePerLitre: price,
-      litrePrice: price,
-      totalAmount,
-      invoicePrice: totalAmount,
+      pricePerLitre,
+      litrePrice: pricePerLitre,
+      totalAmount: invPrice,
+      invoicePrice: invPrice,
       orderDate,
-      invoiceDate: orderDate,
+      invoiceDate: invoiceDate || orderDate,
       expectedDelivery,
       expectedDeliveryDate: expectedDelivery,
       status,
@@ -161,37 +163,55 @@ export default function PurchaseOrderFormModal({ open, onClose }: Props) {
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 placeholder="e.g. 5000"
+                data-ocid="purchase_order.quantity.input"
                 required
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="price">Price/Litre (₹) *</Label>
+              <Label htmlFor="invoicePrice">Invoice Price (₹) *</Label>
               <Input
-                id="price"
+                id="invoicePrice"
                 type="number"
                 min={0}
                 step={0.01}
-                value={pricePerLitre}
-                onChange={(e) => setPricePerLitre(e.target.value)}
-                placeholder="e.g. 94.00"
+                value={invoicePrice}
+                onChange={(e) => setInvoicePrice(e.target.value)}
+                placeholder="e.g. 470000"
+                data-ocid="purchase_order.invoice_price.input"
                 required
               />
             </div>
           </div>
 
-          {qty > 0 && price > 0 && (
-            <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Total Amount: </span>
-              <span className="font-bold text-foreground">
-                ₹
-                {totalAmount.toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
+          {qty > 0 && invPrice > 0 && (
+            <div className="bg-muted/50 rounded-lg px-3 py-2 text-sm space-y-1">
+              <div>
+                <span className="text-muted-foreground">Price per Litre: </span>
+                <span className="font-bold text-foreground">
+                  ₹
+                  {pricePerLitre.toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 4,
+                  })}
+                </span>
+                <span className="text-muted-foreground text-xs ml-1">
+                  (Invoice Price ÷ Quantity)
+                </span>
+              </div>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="invoiceDate">Invoice Date</Label>
+              <Input
+                id="invoiceDate"
+                type="date"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
+                data-ocid="purchase_order.invoice_date.input"
+              />
+            </div>
             <div className="space-y-1">
               <Label htmlFor="orderDate">Order Date</Label>
               <Input
@@ -199,17 +219,20 @@ export default function PurchaseOrderFormModal({ open, onClose }: Props) {
                 type="date"
                 value={orderDate}
                 onChange={(e) => setOrderDate(e.target.value)}
+                data-ocid="purchase_order.order_date.input"
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="delivery">Expected Delivery</Label>
-              <Input
-                id="delivery"
-                type="date"
-                value={expectedDelivery}
-                onChange={(e) => setExpectedDelivery(e.target.value)}
-              />
-            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="delivery">Expected Delivery</Label>
+            <Input
+              id="delivery"
+              type="date"
+              value={expectedDelivery}
+              onChange={(e) => setExpectedDelivery(e.target.value)}
+              data-ocid="purchase_order.expected_delivery.input"
+            />
           </div>
 
           <div className="space-y-1">

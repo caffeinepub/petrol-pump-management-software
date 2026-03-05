@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { type StaffMember, useAppStore } from "@/store/appStore";
+import { type Shift, type StaffMember, useAppStore } from "@/store/appStore";
 import { Pencil, Plus, Search, Trash2, UserPlus } from "lucide-react";
 import React, { useState } from "react";
 
@@ -57,12 +57,16 @@ const shiftStatusColor: Record<string, string> = {
 };
 
 export default function StaffManagement() {
-  const { staff, shifts, deleteStaff } = useAppStore();
+  const { staff, shifts, deleteStaff, deleteShift } = useAppStore();
   const [search, setSearch] = useState("");
   const [staffModalOpen, setStaffModalOpen] = useState(false);
   const [shiftModalOpen, setShiftModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+  const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<StaffMember | null>(null);
+  const [deleteShiftTarget, setDeleteShiftTarget] = useState<Shift | null>(
+    null,
+  );
 
   const filteredStaff = staff.filter(
     (s) =>
@@ -89,6 +93,23 @@ export default function StaffManagement() {
     if (deleteTarget) {
       deleteStaff(deleteTarget.id);
       setDeleteTarget(null);
+    }
+  };
+
+  const handleEditShift = (shift: Shift) => {
+    setEditingShift(shift);
+    setShiftModalOpen(true);
+  };
+
+  const handleAddShift = () => {
+    setEditingShift(null);
+    setShiftModalOpen(true);
+  };
+
+  const handleDeleteShiftConfirm = () => {
+    if (deleteShiftTarget) {
+      deleteShift(deleteShiftTarget.id);
+      setDeleteShiftTarget(null);
     }
   };
 
@@ -256,8 +277,9 @@ export default function StaffManagement() {
         <TabsContent value="schedule" className="space-y-4 mt-4">
           <div className="flex justify-end">
             <Button
-              onClick={() => setShiftModalOpen(true)}
+              onClick={handleAddShift}
               className="min-h-[44px]"
+              data-ocid="shift.schedule_button"
             >
               <Plus className="mr-2 h-4 w-4" />
               Schedule Shift
@@ -265,7 +287,7 @@ export default function StaffManagement() {
           </div>
           <div className="bg-card border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
-              <Table>
+              <Table data-ocid="shift.table">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="whitespace-nowrap">Staff</TableHead>
@@ -277,21 +299,28 @@ export default function StaffManagement() {
                       Pump
                     </TableHead>
                     <TableHead className="whitespace-nowrap">Status</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {shifts.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={5}
+                        colSpan={6}
                         className="text-center py-8 text-muted-foreground"
+                        data-ocid="shift.empty_state"
                       >
                         No shifts scheduled.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    shifts.map((shift) => (
-                      <TableRow key={shift.id}>
+                    shifts.map((shift, idx) => (
+                      <TableRow
+                        key={shift.id}
+                        data-ocid={`shift.row.${idx + 1}`}
+                      >
                         <TableCell>
                           <p className="font-medium text-foreground">
                             {shift.staffName}
@@ -320,6 +349,30 @@ export default function StaffManagement() {
                             {shift.status}
                           </span>
                         </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              onClick={() => handleEditShift(shift)}
+                              title="Edit shift"
+                              data-ocid={`shift.edit_button.${idx + 1}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => setDeleteShiftTarget(shift)}
+                              title="Delete shift"
+                              data-ocid={`shift.delete_button.${idx + 1}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -338,16 +391,21 @@ export default function StaffManagement() {
 
       <ShiftFormModal
         open={shiftModalOpen}
-        onClose={() => setShiftModalOpen(false)}
+        onClose={() => {
+          setShiftModalOpen(false);
+          setEditingShift(null);
+        }}
+        editingShift={editingShift}
       />
 
+      {/* Delete Staff Confirmation */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent data-ocid="staff.delete.dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
             <AlertDialogDescription>
@@ -357,10 +415,45 @@ export default function StaffManagement() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel data-ocid="staff.delete.cancel_button">
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-ocid="staff.delete.confirm_button"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Shift Confirmation */}
+      <AlertDialog
+        open={!!deleteShiftTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteShiftTarget(null);
+        }}
+      >
+        <AlertDialogContent data-ocid="shift.delete.dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Shift</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the shift for{" "}
+              <strong>{deleteShiftTarget?.staffName}</strong> on{" "}
+              <strong>{deleteShiftTarget?.date}</strong>? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-ocid="shift.delete.cancel_button">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteShiftConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-ocid="shift.delete.confirm_button"
             >
               Delete
             </AlertDialogAction>

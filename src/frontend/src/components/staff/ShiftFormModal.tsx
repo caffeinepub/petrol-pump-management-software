@@ -17,18 +17,24 @@ import {
 } from "@/components/ui/select";
 import type React from "react";
 import { useEffect, useState } from "react";
-import { type ShiftStatus, useAppStore } from "../../store/appStore";
+import {
+  type Shift,
+  type ShiftStatus,
+  useAppStore,
+} from "../../store/appStore";
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  editingShift?: Shift | null;
 }
 
 const SHIFT_STATUSES: ShiftStatus[] = ["Scheduled", "Completed", "Absent"];
 
-export default function ShiftFormModal({ open, onClose }: Props) {
+export default function ShiftFormModal({ open, onClose, editingShift }: Props) {
   const staff = useAppStore((s) => s.staff).filter((s) => s.isActive);
   const addShift = useAppStore((s) => s.addShift);
+  const updateShift = useAppStore((s) => s.updateShift);
 
   const [staffId, setStaffId] = useState("");
   const [date, setDate] = useState("");
@@ -40,15 +46,24 @@ export default function ShiftFormModal({ open, onClose }: Props) {
 
   useEffect(() => {
     if (open) {
-      setStaffId("");
-      setDate("");
-      setStartTime("");
-      setEndTime("");
-      setPumpNumber("");
-      setStatus("Scheduled");
+      if (editingShift) {
+        setStaffId(editingShift.staffId);
+        setDate(editingShift.date);
+        setStartTime(editingShift.startTime);
+        setEndTime(editingShift.endTime);
+        setPumpNumber(String(editingShift.pumpNumber));
+        setStatus(editingShift.status);
+      } else {
+        setStaffId("");
+        setDate("");
+        setStartTime("");
+        setEndTime("");
+        setPumpNumber("");
+        setStatus("Scheduled");
+      }
       setErrors({});
     }
-  }, [open]);
+  }, [open, editingShift]);
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -68,16 +83,28 @@ export default function ShiftFormModal({ open, onClose }: Props) {
       return;
     }
     const member = staff.find((s) => s.id === staffId);
-    addShift({
-      id: `shift-${Date.now()}`,
-      staffId,
-      staffName: member?.name ?? "",
-      date,
-      startTime,
-      endTime,
-      pumpNumber: Number.parseInt(pumpNumber, 10),
-      status,
-    });
+    if (editingShift) {
+      updateShift(editingShift.id, {
+        staffId,
+        staffName: member?.name ?? editingShift.staffName,
+        date,
+        startTime,
+        endTime,
+        pumpNumber: Number.parseInt(pumpNumber, 10),
+        status,
+      });
+    } else {
+      addShift({
+        id: `shift-${Date.now()}`,
+        staffId,
+        staffName: member?.name ?? "",
+        date,
+        startTime,
+        endTime,
+        pumpNumber: Number.parseInt(pumpNumber, 10),
+        status,
+      });
+    }
     onClose();
   };
 
@@ -85,7 +112,9 @@ export default function ShiftFormModal({ open, onClose }: Props) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Schedule Shift</DialogTitle>
+          <DialogTitle>
+            {editingShift ? "Edit Shift" : "Schedule Shift"}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
@@ -97,7 +126,7 @@ export default function ShiftFormModal({ open, onClose }: Props) {
                 setErrors((p) => ({ ...p, staffId: "" }));
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger data-ocid="shift.staff.select">
                 <SelectValue placeholder="Select staff member" />
               </SelectTrigger>
               <SelectContent>
@@ -119,6 +148,7 @@ export default function ShiftFormModal({ open, onClose }: Props) {
               id="date"
               type="date"
               value={date}
+              data-ocid="shift.date.input"
               onChange={(e) => {
                 setDate(e.target.value);
                 setErrors((p) => ({ ...p, date: "" }));
@@ -136,6 +166,7 @@ export default function ShiftFormModal({ open, onClose }: Props) {
                 id="startTime"
                 type="time"
                 value={startTime}
+                data-ocid="shift.start_time.input"
                 onChange={(e) => {
                   setStartTime(e.target.value);
                   setErrors((p) => ({ ...p, startTime: "" }));
@@ -151,6 +182,7 @@ export default function ShiftFormModal({ open, onClose }: Props) {
                 id="endTime"
                 type="time"
                 value={endTime}
+                data-ocid="shift.end_time.input"
                 onChange={(e) => {
                   setEndTime(e.target.value);
                   setErrors((p) => ({ ...p, endTime: "" }));
@@ -169,6 +201,7 @@ export default function ShiftFormModal({ open, onClose }: Props) {
               type="number"
               min={1}
               value={pumpNumber}
+              data-ocid="shift.pump.input"
               onChange={(e) => {
                 setPumpNumber(e.target.value);
                 setErrors((p) => ({ ...p, pumpNumber: "" }));
@@ -186,7 +219,7 @@ export default function ShiftFormModal({ open, onClose }: Props) {
               value={status}
               onValueChange={(v) => setStatus(v as ShiftStatus)}
             >
-              <SelectTrigger>
+              <SelectTrigger data-ocid="shift.status.select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -200,10 +233,17 @@ export default function ShiftFormModal({ open, onClose }: Props) {
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              data-ocid="shift.cancel_button"
+            >
               Cancel
             </Button>
-            <Button type="submit">Schedule Shift</Button>
+            <Button type="submit" data-ocid="shift.submit_button">
+              {editingShift ? "Save Changes" : "Schedule Shift"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -48,11 +48,17 @@ export interface FuelInventory {
 export interface FuelSale {
   id: string;
   date: string;
+  saleDate: string;
   fuelType: FuelType | string;
+  startTotalizer: number;
+  endTotalizer: number;
+  /** Derived: endTotalizer - startTotalizer */
   litres: number;
   quantity: number;
-  pricePerLitre: number;
-  pricePerLiter: number;
+  /** Kept for backward compat with old records */
+  pricePerLitre?: number;
+  /** Kept for backward compat with old records */
+  pricePerLiter?: number;
   total: number;
   totalAmount: number;
   paymentMethod: PaymentMethod;
@@ -241,6 +247,8 @@ interface AppState {
   deleteStaff: (id: string) => void;
 
   addShift: (shift: Shift) => void;
+  updateShift: (id: string, updates: Partial<Shift>) => void;
+  deleteShift: (id: string) => void;
 
   addExpense: (expense: Omit<Expense, "id">) => void;
   updateExpense: (id: string, updates: Partial<Omit<Expense, "id">>) => void;
@@ -273,18 +281,27 @@ function makeSale(base: {
   date: string;
   fuelType: FuelType | string;
   litres: number;
-  pricePerLitre: number;
+  pricePerLitre?: number;
   total: number;
   paymentMethod: PaymentMethod;
   pumpNumber: number;
   recordedBy: string;
   customerId?: string;
   customerName?: string;
+  startTotalizer?: number;
+  endTotalizer?: number;
 }): FuelSale {
+  const startTotalizer = base.startTotalizer ?? 0;
+  const endTotalizer = base.endTotalizer ?? base.litres;
   return {
     ...base,
+    saleDate: base.date,
+    startTotalizer,
+    endTotalizer,
+    litres: base.litres,
     quantity: base.litres,
     totalAmount: base.total,
+    pricePerLitre: base.pricePerLitre,
     pricePerLiter: base.pricePerLitre,
     staffName: base.recordedBy,
   };
@@ -994,6 +1011,22 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           shifts: [...(state.shifts ?? []), shift],
           shiftSchedules: [...(state.shiftSchedules ?? []), shift],
+        })),
+
+      updateShift: (id, updates) =>
+        set((state) => ({
+          shifts: state.shifts.map((s) =>
+            s.id === id ? { ...s, ...updates } : s,
+          ),
+          shiftSchedules: state.shiftSchedules.map((s) =>
+            s.id === id ? { ...s, ...updates } : s,
+          ),
+        })),
+
+      deleteShift: (id) =>
+        set((state) => ({
+          shifts: state.shifts.filter((s) => s.id !== id),
+          shiftSchedules: state.shiftSchedules.filter((s) => s.id !== id),
         })),
 
       addExpense: (expense) =>
